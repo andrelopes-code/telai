@@ -1,6 +1,8 @@
+use std::collections::HashMap;
 use std::iter;
 use std::os::windows::ffi::OsStrExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::{LazyLock, Mutex, PoisonError};
 
 use windows::Win32::Graphics::Gdi::{
     BI_RGB, BITMAP, BITMAPINFO, BITMAPINFOHEADER, CreateCompatibleDC, DIB_RGB_COLORS, DeleteDC,
@@ -13,8 +15,21 @@ use windows::core::PCWSTR;
 /// Shown at 24 CSS pixels, so this stays sharp up to 200% display scaling.
 const ICON_SIZE: u32 = 48;
 
+/// Icons by executable path. The window list refreshes every few seconds, and
+/// an executable keeps its icon while it runs.
+static ICONS: LazyLock<Mutex<HashMap<PathBuf, Option<Vec<u8>>>>> = LazyLock::new(Mutex::default);
+
 /// The executable's main icon as a PNG image.
 pub fn executable_icon_png(path: &Path) -> Option<Vec<u8>> {
+    let mut icons = ICONS.lock().unwrap_or_else(PoisonError::into_inner);
+
+    icons
+        .entry(path.to_path_buf())
+        .or_insert_with(|| extract_icon_png(path))
+        .clone()
+}
+
+fn extract_icon_png(path: &Path) -> Option<Vec<u8>> {
     let wide_path: Vec<u16> = path
         .as_os_str()
         .encode_wide()
@@ -48,17 +63,18 @@ fn icon_rgba(icon: HICON) -> Option<(u32, u32, Vec<u8>)> {
     let context = OwnedDc(unsafe { CreateCompatibleDC(None) });
 
     let mut pixels = read_bgra(context.0, color.0, width, height)?;
-    let has_alpha = pixels.chunks_exact(4).any(|pixel| pixel[3] != 0);
+    let has_alpha = pixels.as_chunks::<4>().0.iter().any(|pixel| pixel[3] != 0);
     if !has_alpha {
         // Icons without an alpha channel mark transparency in the mask instead:
         // a white mask pixel is transparent.
         let mask_pixels = read_bgra(context.0, mask.0, width, height)?;
-        for (pixel, mask_pixel) in pixels.chunks_exact_mut(4).zip(mask_pixels.chunks_exact(4)) {
+        let mask_pixels = mask_pixels.as_chunks::<4>().0;
+        for (pixel, mask_pixel) in pixels.as_chunks_mut::<4>().0.iter_mut().zip(mask_pixels) {
             pixel[3] = if mask_pixel[0] == 0 { u8::MAX } else { 0 };
         }
     }
 
-    for pixel in pixels.chunks_exact_mut(4) {
+    for pixel in pixels.as_chunks_mut::<4>().0 {
         pixel.swap(0, 2);
     }
 

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::ffi::c_void;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use windows::Win32::Foundation::{HWND, RECT};
 use windows::Win32::Graphics::Dwm::{DWMWA_CLOAKED, DwmGetWindowAttribute};
@@ -39,47 +39,24 @@ pub fn list_windows() -> Result<Vec<WindowInfo>, Error> {
 
     let own_process = std::process::id();
     let mut executables: HashMap<u32, Option<PathBuf>> = HashMap::new();
-    let mut icons: HashMap<PathBuf, Option<Vec<u8>>> = HashMap::new();
 
-    let mut listed = Vec::new();
-    for window in windows {
-        let Ok(process_id) = window.process_id() else {
-            continue;
-        };
-        let title = window.title().unwrap_or_default();
-        let hwnd = HWND(window.as_raw_hwnd());
-        if process_id == own_process || title.trim().is_empty() || !is_shown(hwnd) {
-            continue;
-        }
+    let listed = windows
+        .iter()
+        .filter_map(|window| {
+            let process_id = window.process_id().ok().filter(|&id| id != own_process)?;
+            let executable = executables
+                .entry(process_id)
+                .or_insert_with(|| image_path(process_id));
 
-        let executable = executables
-            .entry(process_id)
-            .or_insert_with(|| image_path(process_id));
-        let process_name = executable
-            .as_deref()
-            .and_then(|path| path.file_stem())
-            .map_or_else(
-                || window.process_name().unwrap_or_default(),
-                |stem| stem.to_string_lossy().into_owned(),
-            );
-        let icon_png = executable.as_ref().and_then(|path| {
-            icons
-                .entry(path.clone())
-                .or_insert_with(|| icon::executable_icon_png(path))
-                .clone()
-        });
-
-        listed.push(WindowInfo {
-            handle: hwnd.0 as isize,
-            title,
-            process_id,
-            process_name,
-            icon_png,
-            playing_audio: audible
+            describe(window, process_id, executable.as_deref())
+        })
+        .map(|mut info| {
+            info.playing_audio = audible
                 .iter()
-                .any(|&audible| tree.is_within(audible, process_id)),
-        });
-    }
+                .any(|&process| tree.is_within(process, info.process_id));
+            info
+        })
+        .collect();
 
     Ok(listed)
 }
@@ -117,4 +94,27 @@ fn is_shown(hwnd: HWND) -> bool {
     let has_area = unsafe { GetClientRect(hwnd, &raw mut client) }.is_ok();
 
     has_area && client.right > client.left && client.bottom > client.top
+}
+
+/// A shown, titled window, without its audio state.
+fn describe(window: &Window, process_id: u32, executable: Option<&Path>) -> Option<WindowInfo> {
+    let title = window.title().ok()?;
+    let hwnd = HWND(window.as_raw_hwnd());
+    if title.trim().is_empty() || !is_shown(hwnd) {
+        return None;
+    }
+
+    let process_name = executable.and_then(Path::file_stem).map_or_else(
+        || window.process_name().unwrap_or_default(),
+        |stem| stem.to_string_lossy().into_owned(),
+    );
+
+    Some(WindowInfo {
+        handle: hwnd.0 as isize,
+        title,
+        process_id,
+        process_name,
+        icon_png: executable.and_then(icon::executable_icon_png),
+        playing_audio: false,
+    })
 }

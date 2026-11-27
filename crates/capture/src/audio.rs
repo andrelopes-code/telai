@@ -147,11 +147,8 @@ fn read_until_stopped(
             let len = read as usize * CHANNELS * BYTES_PER_SAMPLE;
 
             samples.clear();
-            samples.extend(
-                bytes[..len].chunks_exact(BYTES_PER_SAMPLE).map(|sample| {
-                    f32::from_le_bytes(sample.try_into().expect("chunk of four bytes"))
-                }),
-            );
+            let (chunks, _) = bytes[..len].as_chunks::<BYTES_PER_SAMPLE>();
+            samples.extend(chunks.iter().map(|sample| f32::from_le_bytes(*sample)));
             on_samples(&samples);
         }
     }
