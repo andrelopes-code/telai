@@ -5,8 +5,8 @@
 O Telai transmite uma janela do computador, com o som apenas daquele programa, para uma aba do navegador. Essa aba pode ser compartilhada em qualquer chamada no navegador que compartilhe abas.
 
 <p>
-  <img src="docs/images/picker.pt-BR.png" width="330" alt="Seleção de janela, com as janelas que tocam som no topo">
-  <img src="docs/images/live.pt-BR.png" width="330" alt="Tela ao vivo com o medidor de som e os passos para levar a transmissão à chamada">
+  <img src="docs/images/picker.pt-BR.webp" width="330" alt="Seleção de janela, com as janelas que tocam som no topo">
+  <img src="docs/images/live.pt-BR.webp" width="330" alt="Tela ao vivo com o medidor de som e os passos para levar a transmissão à chamada">
 </p>
 
 ## O problema
@@ -32,6 +32,8 @@ flowchart LR
 
 - **Vídeo**: o Windows Graphics Capture entrega a janela a até 30 fps. Duas threads de codificação convertem cada quadro em JPEG, reduzido para 1080p quando maior. Um quadro que chega com as duas threads ocupadas é descartado: em uma máquina lenta, a transmissão perde quadros em vez de acumular atraso.
 - **Áudio**: o WASAPI process loopback grava o áudio tocado pelo processo da janela e pelos processos filhos, em estéreo `f32` a 48 kHz. Exige o Windows 10 versão 2004 ou mais novo.
+- **Lista de janelas**: cada janela vem com uma imagem tirada por `PrintWindow`, que não desenha borda de captura, e com o ícone do próprio programa.
+- **Prévia**: a janela do app mostra o que a chamada recebe por uma rota WebSocket só de vídeo, a 15 fps. Ela não conta como aba do player.
 - **Player**: a página decodifica os quadros com `createImageBitmap` em um canvas e toca o áudio por um `AudioWorklet` com buffer de 40 ms, limitado a 150 ms.
 
 ## Som duplicado
@@ -42,7 +44,7 @@ O Telai identifica o processo do navegador dono da conexão do player e verifica
 
 ## Uso
 
-1. Abra o Telai e escolha a janela. As janelas que tocam som aparecem primeiro.
+1. Abra o Telai e escolha a janela. As janelas que tocam som aparecem primeiro, e a da frente já vem selecionada.
 2. Abra o player no Chrome ou no Edge com **Abrir** e clique uma vez na página para liberar o som.
 3. Silencie a aba do player: botão direito na aba, depois **Desativar som do site**.
 4. Na chamada, compartilhe uma aba e escolha a aba do Telai, com o áudio da aba ligado.
@@ -80,18 +82,19 @@ No Windows, `cargo test --workspace -- --include-ignored` também roda um teste 
 
 ## Estrutura
 
-| Caminho          | Conteúdo                                                                 |
-| ---------------- | ------------------------------------------------------------------------ |
-| `crates/capture` | Lista de janelas, captura de janela, captura de áudio do processo        |
-| `crates/stream`  | Codificação JPEG, protocolo, servidor HTTP e WebSocket do player         |
-| `src-tauri`      | App Tauri: sessão ao vivo, comandos, ícone na bandeja                    |
-| `src/app`        | Janela do app (React)                                                    |
-| `src/player`     | Página do player                                                         |
-| `src/shared`     | Protocolo compartilhado entre a página e `crates/stream/src/protocol.rs` |
+| Caminho          | Conteúdo                                                                   |
+| ---------------- | -------------------------------------------------------------------------- |
+| `crates/capture` | Lista de janelas, captura de janela, captura de áudio do processo          |
+| `crates/stream`  | Codificação JPEG, protocolo, servidor HTTP e WebSocket do player           |
+| `src-tauri`      | App Tauri: sessão ao vivo, comandos, ícone na bandeja                      |
+| `src/app`        | Janela do app (React)                                                      |
+| `src/player`     | Página do player                                                           |
+| `src/shared`     | Protocolo compartilhado entre a página e `crates/stream/src/protocol.rs`   |
+| `src/styles`     | Tokens de design compartilhados pela janela do app e pela página do player |
 
 ## Segurança
 
-O servidor escuta apenas em `127.0.0.1`. Ele recusa requisições cujo cabeçalho `Host` aponta para outro host, o que bloqueia DNS rebinding. Também recusa handshakes de WebSocket de qualquer outra origem, então nenhum site consegue abrir a transmissão.
+O servidor escuta apenas em `127.0.0.1`. Ele recusa requisições cujo cabeçalho `Host` aponta para outro host, o que bloqueia DNS rebinding. A transmissão do player aceita só a origem da página do player, e a prévia só a da janela do app, então nenhum site consegue abrir nenhuma das duas.
 
 ## Licença
 

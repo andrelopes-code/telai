@@ -5,8 +5,8 @@
 Telai streams one desktop window, with only that program's sound, to a tab in the browser. The tab can then be shared in any browser call that shares tabs.
 
 <p>
-  <img src="docs/images/picker.png" width="330" alt="Window picker, with the windows that play sound listed first">
-  <img src="docs/images/live.png" width="330" alt="Live screen with the sound meter and the steps to bring the stream into a call">
+  <img src="docs/images/picker.webp" width="330" alt="Window picker, with the windows that play sound listed first">
+  <img src="docs/images/live.webp" width="330" alt="Live screen with the sound meter and the steps to bring the stream into a call">
 </p>
 
 ## The problem
@@ -32,6 +32,8 @@ flowchart LR
 
 - **Video**: Windows Graphics Capture delivers the window at up to 30 fps. Two encoder threads turn each frame into a JPEG, scaled down to 1080p when larger. A frame that arrives while both threads are busy is dropped, so a slow machine loses frames instead of adding delay.
 - **Audio**: WASAPI process loopback records the audio rendered by the window's process and its children, as 48 kHz stereo `f32` samples. It requires Windows 10 version 2004 or later.
+- **Window list**: each window comes with a still taken by `PrintWindow`, which draws no capture border, and the program's own icon.
+- **Preview**: the app window shows what the call receives through a video-only WebSocket route at 15 fps. It does not count as a player tab.
 - **Player**: the page decodes frames with `createImageBitmap` onto a canvas and plays audio through an `AudioWorklet` with a 40 ms jitter buffer, capped at 150 ms.
 
 ## Duplicate sound
@@ -42,7 +44,7 @@ Telai checks which browser process holds the player connection and whether that 
 
 ## Usage
 
-1. Run Telai and choose the window. Windows playing sound are listed first.
+1. Run Telai and choose the window. Windows playing sound are listed first, and the frontmost of them is selected.
 2. Open the player in Chrome or Edge with **Open**, and click the page once to allow sound.
 3. Mute the player tab: right-click the tab, then **Mute site**.
 4. In the call, share a tab and choose the Telai tab, with tab audio on.
@@ -88,10 +90,11 @@ The `telai-stream` crate and the frontend build and test on any platform. The ca
 | `src/app`        | App window (React)                                                     |
 | `src/player`     | Player page                                                            |
 | `src/shared`     | Wire protocol shared by the page and `crates/stream/src/protocol.rs`   |
+| `src/styles`     | Design tokens shared by the app window and the player page             |
 
 ## Security
 
-The server listens on `127.0.0.1` only. It rejects requests whose `Host` header names another host, which blocks DNS rebinding, and WebSocket handshakes from any other origin, so no website can open the stream.
+The server listens on `127.0.0.1` only. It rejects requests whose `Host` header names another host, which blocks DNS rebinding. The player stream accepts only the player page's origin and the preview stream only the app window's, so no website can open either.
 
 ## License
 
