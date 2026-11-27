@@ -4,8 +4,8 @@ use std::path::PathBuf;
 
 use telai_capture::ProcessTree;
 
-/// Seconds of silence before the duplicate-audio warning clears. Quiet scenes
-/// in a film would otherwise make it flicker.
+/// Seconds of silence before the duplicate-audio warning clears. Quiet
+/// passages would otherwise make it flicker.
 const SILENT_CHECKS: u32 = 3;
 
 /// Whether the browser that shows the player also plays its audio aloud.

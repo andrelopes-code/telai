@@ -31,7 +31,7 @@ describe("stepStates", () => {
 
 function snapshot(overrides: Partial<LiveSnapshot>): LiveSnapshot {
   return {
-    source: { handle: 1, title: "Movie", processName: "vlc", icon: null },
+    source: { handle: 1, title: "Demo", processName: "player", icon: null },
     startedAt: 0,
     viewers: 0,
     browserAudible: false,

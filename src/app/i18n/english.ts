@@ -34,8 +34,8 @@ export const english = {
   muteStepHint: "Right-click the tab › Mute site",
   muteStepAttention: "The tab plays sound on this PC: mute it",
   muteStepDone: "Tab muted on this PC",
-  shareStepTitle: "Share the tab in Jitsi",
-  shareStepHint: "Share screen › Chrome Tab › Telai",
+  shareStepTitle: "Share the tab in the call",
+  shareStepHint: "Share a tab and choose Telai, with tab audio on",
 };
 
 export type Strings = typeof english;

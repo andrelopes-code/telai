@@ -51,7 +51,7 @@ async fn a_viewer_receives_status_then_the_latest_frame() {
     let (port, hub) = start().await;
     hub.set_status(Status {
         live: true,
-        title: "Movie".into(),
+        title: "Demo".into(),
     });
     hub.publish_video(Bytes::from_static(b"frame"));
 
@@ -62,7 +62,7 @@ async fn a_viewer_receives_status_then_the_latest_frame() {
     let status = next_message(&mut socket).await;
     assert_eq!(
         status,
-        Message::Text(r#"{"live":true,"title":"Movie"}"#.into())
+        Message::Text(r#"{"live":true,"title":"Demo"}"#.into())
     );
 
     let frame = next_message(&mut socket).await;

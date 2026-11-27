@@ -5,8 +5,8 @@ use jpeg_encoder::{ColorType, Encoder, SamplingFactor};
 
 use crate::protocol;
 
-/// Frames taller than this are scaled down before encoding. Jitsi sends at
-/// most 1080p, so more pixels only cost encoding time.
+/// Frames taller than this are scaled down before encoding, which keeps the
+/// encoding time of large windows within the frame budget.
 const MAX_HEIGHT: u32 = 1080;
 
 /// Chroma is subsampled 4:2:0 like the video sources themselves, so quality

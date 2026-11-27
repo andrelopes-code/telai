@@ -13,7 +13,7 @@ export interface StepStates {
  *
  * The tab counts as muted only once the window was heard playing sound while
  * the browser stayed silent; before that, nothing proves it either way.
- * Sharing happens inside Jitsi, which the app cannot observe.
+ * Sharing happens inside the call, which the app cannot observe.
  */
 export function stepStates(snapshot: LiveSnapshot, soundHeard: boolean): StepStates {
   const open: StepState = snapshot.viewers > 0 ? "done" : "pending";

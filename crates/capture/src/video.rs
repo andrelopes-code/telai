@@ -13,7 +13,7 @@ use windows_capture::window::Window;
 use crate::Error;
 use crate::window::to_hwnd;
 
-/// Jitsi shares at most 30 fps, so faster capture only costs encoding time.
+/// 30 fps keeps JPEG encoding of 1080p frames within the two encoder threads.
 const FRAME_INTERVAL: Duration = Duration::from_nanos(1_000_000_000 / 30);
 
 const BYTES_PER_PIXEL: usize = 4;

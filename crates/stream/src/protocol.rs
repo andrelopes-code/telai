@@ -79,11 +79,11 @@ mod tests {
     fn status_serializes_as_json() {
         let status = Status {
             live: true,
-            title: "Movie".into(),
+            title: "Demo".into(),
         };
 
         let json = serde_json::to_string(&status).unwrap();
 
-        assert_eq!(json, r#"{"live":true,"title":"Movie"}"#);
+        assert_eq!(json, r#"{"live":true,"title":"Demo"}"#);
     }
 }

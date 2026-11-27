@@ -36,6 +36,6 @@ export const portuguese: Strings = {
   muteStepHint: "Botão direito na aba › Desativar som do site",
   muteStepAttention: "A aba toca o som neste PC: silencie-a",
   muteStepDone: "Aba silenciada neste PC",
-  shareStepTitle: "Compartilhe a aba no Jitsi",
-  shareStepHint: "Compartilhar tela › Guia do Chrome › Telai",
+  shareStepTitle: "Compartilhe a aba na chamada",
+  shareStepHint: "Compartilhe uma guia e escolha a do Telai",
 };

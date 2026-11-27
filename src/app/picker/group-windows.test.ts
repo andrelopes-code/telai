@@ -7,8 +7,8 @@ describe("groupWindows", () => {
   it("puts windows playing sound first, keeping their order", () => {
     const windows = [
       window(1, "Notes", "notepad", false),
-      window(2, "Movie.mkv - VLC media player", "vlc", true),
-      window(3, "Stremio", "stremio", true),
+      window(2, "Demo.mp4 - Media Player", "player", true),
+      window(3, "Browser", "browser", true),
     ];
 
     const groups = groupWindows(windows, "");
@@ -19,7 +19,7 @@ describe("groupWindows", () => {
 
   it("matches the title or the process name, ignoring case and accents", () => {
     const windows = [
-      window(1, "Ação e Reação.mp4", "vlc", false),
+      window(1, "Ação e Reação.mp4", "player", false),
       window(2, "Inbox", "Outlook", false),
     ];
 

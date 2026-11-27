@@ -32,12 +32,12 @@ describe("parsePacket", () => {
 
 describe("parseStatus", () => {
   it("reads a status message", () => {
-    expect(parseStatus('{"live":true,"title":"Movie"}')).toEqual({ live: true, title: "Movie" });
+    expect(parseStatus('{"live":true,"title":"Demo"}')).toEqual({ live: true, title: "Demo" });
   });
 
   it("rejects malformed messages", () => {
     expect(parseStatus("{")).toBeNull();
-    expect(parseStatus('{"live":"yes","title":"Movie"}')).toBeNull();
+    expect(parseStatus('{"live":"yes","title":"Demo"}')).toBeNull();
     expect(parseStatus("null")).toBeNull();
   });
 });
