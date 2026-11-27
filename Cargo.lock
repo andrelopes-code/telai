@@ -4221,6 +4221,7 @@ dependencies = [
  "wasapi",
  "windows",
  "windows-capture",
+ "windows-version",
 ]
 
 [[package]]
