@@ -9,9 +9,9 @@ use crate::protocol;
 /// encoding time of large windows within the frame budget.
 const MAX_HEIGHT: u32 = 1080;
 
-/// Chroma is subsampled 4:2:0 like the video sources themselves, so quality
-/// goes to luma detail.
-const QUALITY: u8 = 90;
+/// Near the visually lossless range. The frames travel over the loopback
+/// interface, where size costs nothing; the call encodes them again anyway.
+const QUALITY: u8 = 95;
 
 const BYTES_PER_PIXEL: usize = 4;
 
@@ -77,7 +77,8 @@ impl FrameEncoder {
 
         self.jpeg.clear();
         let mut encoder = Encoder::new(&mut self.jpeg, QUALITY);
-        encoder.set_sampling_factor(SamplingFactor::F_2_2);
+        // 4:4:4 keeps full colour on text and thin lines, which 4:2:0 smears.
+        encoder.set_sampling_factor(SamplingFactor::F_1_1);
         encoder.encode(pixels, jpeg_width, jpeg_height, ColorType::Bgra)?;
 
         Ok(protocol::video_packet(&self.jpeg))
@@ -91,7 +92,7 @@ impl FrameEncoder {
         let mut target = Image::from_slice_u8(width, height, &mut self.scaled, PixelType::U8x4)?;
 
         let options = ResizeOptions::new()
-            .resize_alg(ResizeAlg::Convolution(FilterType::Bilinear))
+            .resize_alg(ResizeAlg::Convolution(FilterType::Lanczos3))
             .use_alpha(false);
         self.resizer.resize(&source, &mut target, &options)?;
 
@@ -105,8 +106,7 @@ impl Default for FrameEncoder {
     }
 }
 
-/// Keeps the aspect ratio and an even width, which JPEG 4:2:0 encodes without
-/// a padded edge column.
+/// Keeps the aspect ratio and an even width.
 fn scaled_size(width: u32, height: u32) -> (u32, u32) {
     if height <= MAX_HEIGHT {
         return (width, height);

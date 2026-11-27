@@ -5,9 +5,10 @@ use std::thread;
 use crate::encoder::{Frame, FrameEncoder};
 use crate::hub::Hub;
 
-/// One encoder thread handles about 30 fps at 1080p on a 2.1 GHz Xeon core;
-/// two leave headroom on slower laptops.
-const WORKERS: usize = 2;
+/// A 1080p frame at quality 95 and 4:4:4 takes up to 100 ms on one core, so
+/// 30 fps needs several threads. Half the cores leaves the rest to the call.
+const MIN_WORKERS: usize = 2;
+const MAX_WORKERS: usize = 6;
 
 struct Job {
     sequence: u64,
@@ -49,7 +50,10 @@ impl EncoderPool {
             last_published: Mutex::new(0),
         });
 
-        let workers = (0..WORKERS)
+        let count = thread::available_parallelism()
+            .map_or(MIN_WORKERS, |cores| cores.get() / 2)
+            .clamp(MIN_WORKERS, MAX_WORKERS);
+        let workers = (0..count)
             .map(|index| {
                 let shared = Arc::clone(&shared);
                 thread::Builder::new()
