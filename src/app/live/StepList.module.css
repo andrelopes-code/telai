@@ -1,0 +1,22 @@
+.section {
+  display: grid;
+  gap: 8px;
+}
+
+.title {
+  margin: 0;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.list {
+  display: grid;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}

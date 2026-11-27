@@ -1,0 +1,30 @@
+.screen {
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
+  gap: 12px;
+  height: 100%;
+  padding: 20px 16px 16px;
+}
+
+.header {
+  display: grid;
+  gap: 2px;
+  padding: 0 4px;
+}
+
+.title {
+  margin: 0;
+  font: 600 20px/28px var(--font-display);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.footer {
+  padding-top: 4px;
+}

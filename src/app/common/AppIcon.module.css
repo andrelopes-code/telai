@@ -1,0 +1,10 @@
+.icon,
+.fallback {
+  flex: none;
+  width: 24px;
+  height: 24px;
+}
+
+.fallback {
+  color: var(--text-muted);
+}

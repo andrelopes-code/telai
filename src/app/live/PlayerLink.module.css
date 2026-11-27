@@ -1,0 +1,33 @@
+.link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+}
+
+.url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+  user-select: text;
+}
+
+.action {
+  flex: none;
+  min-width: 64px;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.action:hover {
+  background: var(--surface-hover);
+}

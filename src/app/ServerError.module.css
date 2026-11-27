@@ -1,0 +1,18 @@
+.screen {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  height: 100%;
+  padding: 24px;
+}
+
+.title {
+  margin: 0;
+  font: 600 20px/28px var(--font-display);
+  color: var(--attention);
+}
+
+.hint {
+  margin: 0;
+  color: var(--text-muted);
+}

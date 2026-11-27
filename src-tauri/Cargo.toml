@@ -1,0 +1,29 @@
+[package]
+name = "telai"
+description = "Streams one window, with only its own audio, to a local browser tab"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+base64 = "0.22"
+serde.workspace = true
+serde_json.workspace = true
+sys-locale = "0.3"
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-log = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-single-instance = "2"
+tracing = { workspace = true, features = ["log"] }
+
+telai-capture.workspace = true
+telai-stream.workspace = true
+
+[lints]
+workspace = true

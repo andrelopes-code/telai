@@ -1,0 +1,41 @@
+export const english = {
+  pickerTitle: "Choose a window",
+  pickerSubtitle: "Its picture and sound go to a browser tab.",
+  searchPlaceholder: "Search windows",
+  groupPlaying: "Playing sound now",
+  groupOthers: "Other windows",
+  noWindows: "No open window to stream.",
+  noMatches: (query: string) => `No window matches “${query}”.`,
+  playingSound: "Playing sound",
+  start: "Stream window",
+  starting: "Starting",
+
+  endedWindowClosed: "Streaming stopped: the window was closed.",
+  endedCaptureFailed: "Streaming stopped: Windows interrupted the capture.",
+  errorWindowGone: "The window closed before streaming started.",
+  errorVideoUnavailable: "Windows does not allow capturing this window.",
+  errorAudioUnavailable: "Sound capture needs Windows 10 version 2004 or later.",
+  errorInternal: "Streaming did not start. Try again.",
+  serverErrorTitle: (port: string) => `Port ${port} is taken`,
+  serverErrorHint: "Another program uses the player port. Close it and reopen Telai.",
+
+  live: "Live",
+  stop: "Stop",
+  soundLevel: "Sound level",
+  minimized: "Window minimized: the tab shows the last frame.",
+  stepsTitle: "Bring it to the call",
+  openStepTitle: "Open the player in Chrome or Edge",
+  openStepDone: (tabs: number) =>
+    tabs === 1 ? "Player open in the browser" : `Player open in ${String(tabs)} tabs`,
+  open: "Open",
+  copy: "Copy",
+  copied: "Copied",
+  muteStepTitle: "Mute the player tab",
+  muteStepHint: "Right-click the tab › Mute site",
+  muteStepAttention: "The tab plays sound on this PC: mute it",
+  muteStepDone: "Tab muted on this PC",
+  shareStepTitle: "Share the tab in Jitsi",
+  shareStepHint: "Share screen › Chrome Tab › Telai",
+};
+
+export type Strings = typeof english;

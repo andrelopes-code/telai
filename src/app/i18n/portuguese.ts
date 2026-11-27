@@ -1,0 +1,41 @@
+import type { Strings } from "./english";
+
+export const portuguese: Strings = {
+  pickerTitle: "Escolha a janela",
+  pickerSubtitle: "A imagem e o som dela vão para uma aba do navegador.",
+  searchPlaceholder: "Buscar janela",
+  groupPlaying: "Tocando som agora",
+  groupOthers: "Outras janelas",
+  noWindows: "Nenhuma janela aberta para transmitir.",
+  noMatches: (query: string) => `Nenhuma janela com “${query}”.`,
+  playingSound: "Tocando som",
+  start: "Transmitir janela",
+  starting: "Iniciando",
+
+  endedWindowClosed: "A transmissão parou: a janela foi fechada.",
+  endedCaptureFailed: "A transmissão parou: o Windows interrompeu a captura.",
+  errorWindowGone: "A janela foi fechada antes de a transmissão começar.",
+  errorVideoUnavailable: "O Windows não permite capturar esta janela.",
+  errorAudioUnavailable: "A captura de som exige o Windows 10 versão 2004 ou mais novo.",
+  errorInternal: "A transmissão não começou. Tente de novo.",
+  serverErrorTitle: (port: string) => `A porta ${port} está ocupada`,
+  serverErrorHint: "Outro programa usa a porta do player. Feche-o e abra o Telai de novo.",
+
+  live: "Ao vivo",
+  stop: "Parar",
+  soundLevel: "Nível do som",
+  minimized: "Janela minimizada: a aba mostra a última imagem.",
+  stepsTitle: "Leve para a chamada",
+  openStepTitle: "Abra o player no Chrome ou no Edge",
+  openStepDone: (tabs: number) =>
+    tabs === 1 ? "Player aberto no navegador" : `Player aberto em ${String(tabs)} abas`,
+  open: "Abrir",
+  copy: "Copiar",
+  copied: "Copiado",
+  muteStepTitle: "Silencie a aba do player",
+  muteStepHint: "Botão direito na aba › Desativar som do site",
+  muteStepAttention: "A aba toca o som neste PC: silencie-a",
+  muteStepDone: "Aba silenciada neste PC",
+  shareStepTitle: "Compartilhe a aba no Jitsi",
+  shareStepHint: "Compartilhar tela › Guia do Chrome › Telai",
+};
