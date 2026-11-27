@@ -3,14 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" href="data:," />
+    <link rel="icon" href="/src/shared/mark.svg" />
     <title>Telai</title>
   </head>
   <body>
-    <canvas id="screen" width="16" height="9"></canvas>
-    <div id="overlay" hidden>
-      <p id="overlay-title"></p>
-      <p id="overlay-hint"></p>
+    <div class="player" id="player">
+      <canvas class="player-video" id="screen" width="16" height="9"></canvas>
+      <div class="player-card" id="card" hidden>
+        <img class="player-mark" src="/src/shared/mark.svg" alt="" />
+        <p class="player-title" id="card-title"></p>
+        <p class="player-hint" id="card-hint"></p>
+      </div>
+      <button class="player-pill" id="unlock" type="button" hidden>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M4.04 4.04a.5.5 0 0 1 .65-.65l15.5 6.2a.5.5 0 0 1-.05.95l-6.17 1.8a1 1 0 0 0-.68.68l-1.8 6.17a.5.5 0 0 1-.95.05Z"
+          />
+        </svg>
+        <span class="label" id="unlock-label"></span>
+      </button>
     </div>
     <script type="module" src="/src/player/main.ts"></script>
   </body>

@@ -1,21 +1,29 @@
+import "@fontsource-variable/geist";
+import "../styles/base.css";
 import "./player.css";
 
 import type { Status } from "../shared/protocol";
 import { AudioOutput } from "./audio-output";
 import { connect } from "./connection";
-import { Overlay } from "./overlay";
-import type { OverlayMode } from "./overlay";
+import { PlayerView } from "./player-view";
+import type { PlayerMode } from "./player-view";
 import { strings } from "./strings";
 import { VideoRenderer } from "./video-renderer";
 
 const renderer = new VideoRenderer(element("screen") as HTMLCanvasElement);
-const overlay = new Overlay(element("overlay"), element("overlay-title"), element("overlay-hint"));
+const view = new PlayerView(
+  element("player"),
+  element("card"),
+  element("card-title"),
+  element("card-hint"),
+  element("unlock"),
+);
 const audio = new AudioOutput();
 
 let connected = false;
 let status: Status = { live: false, title: "" };
 
-function overlayMode(): OverlayMode {
+function mode(): PlayerMode {
   if (!connected) {
     return "offline";
   }
@@ -24,11 +32,11 @@ function overlayMode(): OverlayMode {
     return "idle";
   }
 
-  return audio.suspended ? "audio" : "hidden";
+  return audio.suspended ? "audio" : "live";
 }
 
 function refresh(): void {
-  overlay.show(overlayMode());
+  view.show(mode());
   document.title = status.live ? strings.documentTitle(status.title) : "Telai";
 }
 
@@ -58,6 +66,7 @@ connect(`ws://${location.host}/ws`, {
   },
 });
 
+element("unlock-label").textContent = strings.unlock;
 audio.onStateChange(refresh);
 document.addEventListener("pointerdown", () => {
   audio.resume();

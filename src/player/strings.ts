@@ -1,22 +1,22 @@
 const english = {
   offlineTitle: "Telai is not running",
   offlineHint: "Open Telai on this computer. This page reconnects by itself.",
-  idleTitle: "No window is being streamed",
-  idleHint: "Pick a window in Telai.",
-  audioTitle: "Click to turn on the sound",
-  audioHint: "The browser plays audio only after a click on this page.",
-  browserHint: "Use Chrome or Edge: this browser does not share tab audio.",
+  idleTitle: "Waiting for a window",
+  idleHint: "Pick a window in Telai to begin.",
+  browserTitle: "Use Chrome or Edge",
+  browserHint: "This browser does not share tab audio.",
+  unlock: "Click to turn on the sound",
   documentTitle: (title: string) => `${title} - Telai`,
 };
 
 const portuguese: typeof english = {
-  offlineTitle: "O Telai não está aberto",
-  offlineHint: "Abra o Telai neste computador. Esta página conecta sozinha.",
-  idleTitle: "Nenhuma janela em transmissão",
-  idleHint: "Escolha uma janela no Telai.",
-  audioTitle: "Clique para ativar o som",
-  audioHint: "O navegador só toca áudio depois de um clique nesta página.",
-  browserHint: "Use o Chrome ou o Edge: este navegador não compartilha o som da aba.",
+  offlineTitle: "Telai não está aberto",
+  offlineHint: "Abra o Telai neste computador. Esta página reconecta sozinha.",
+  idleTitle: "Aguardando uma janela",
+  idleHint: "Escolha uma janela no Telai para começar.",
+  browserTitle: "Use o Chrome ou o Edge",
+  browserHint: "Este navegador não compartilha o som da aba.",
+  unlock: "Clique para ativar o som",
   documentTitle: (title: string) => `${title} - Telai`,
 };
 
