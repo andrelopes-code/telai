@@ -6,7 +6,9 @@
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use serde::Serialize;
-use tauri::{AppHandle, State};
+use std::sync::PoisonError;
+
+use tauri::{AppHandle, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
 use crate::app::AppState;
@@ -38,6 +40,9 @@ impl CommandError {
 pub struct AppStatus {
     url: String,
     server_error: Option<String>,
+    /// "mica" when Windows paints the Mica material behind the window,
+    /// "solid" when the window must draw an opaque background.
+    backdrop: &'static str,
     live: Option<LiveSnapshot>,
 }
 
@@ -48,6 +53,7 @@ pub struct WindowView {
     title: String,
     process_name: String,
     icon: Option<String>,
+    thumbnail: Option<String>,
     playing_audio: bool,
 }
 
@@ -55,7 +61,16 @@ pub struct WindowView {
 pub fn status(app: AppHandle, state: State<'_, AppState>) -> AppStatus {
     AppStatus {
         url: state.url.clone(),
-        server_error: state.server_error.clone(),
+        server_error: state
+            .server_error
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone(),
+        backdrop: if telai_capture::supports_mica() {
+            "mica"
+        } else {
+            "solid"
+        },
         live: live::snapshot(&app),
     }
 }
@@ -72,6 +87,7 @@ pub async fn list_windows() -> Result<Vec<WindowView>, CommandError> {
         .map(|window| WindowView {
             handle: window.handle,
             icon: window.icon_png.as_deref().map(icon_data_url),
+            thumbnail: window.thumbnail_jpeg.as_deref().map(jpeg_data_url),
             title: window.title,
             process_name: window.process_name,
             playing_audio: window.playing_audio,
@@ -102,6 +118,21 @@ pub fn open_player(app: AppHandle, state: State<'_, AppState>) -> Result<(), Com
         .map_err(|error| CommandError::Internal(error.to_string()))
 }
 
+/// Tries to bind the player port again, after the program that held it quit.
+#[tauri::command]
+pub async fn retry_server(app: AppHandle) -> Result<AppStatus, CommandError> {
+    let status_app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || crate::app::start_server(&app))
+        .await
+        .map_err(|error| CommandError::Internal(error.to_string()))?;
+
+    Ok(status(status_app.clone(), status_app.state::<AppState>()))
+}
+
 pub fn icon_data_url(png: &[u8]) -> String {
     format!("data:image/png;base64,{}", STANDARD.encode(png))
+}
+
+fn jpeg_data_url(jpeg: &[u8]) -> String {
+    format!("data:image/jpeg;base64,{}", STANDARD.encode(jpeg))
 }

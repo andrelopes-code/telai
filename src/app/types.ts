@@ -5,6 +5,8 @@ export interface WindowView {
   title: string;
   processName: string;
   icon: string | null;
+  /** A still of the window; null while it is minimized. */
+  thumbnail: string | null;
   playingAudio: boolean;
 }
 
@@ -27,9 +29,13 @@ export interface LiveSnapshot {
   level: number;
 }
 
+/** "mica" when Windows paints the Mica material behind the window. */
+export type Backdrop = "mica" | "solid";
+
 export interface AppStatus {
   url: string;
   serverError: string | null;
+  backdrop: Backdrop;
   live: LiveSnapshot | null;
 }
 

@@ -23,6 +23,18 @@ export function groupWindows(windows: WindowView[], query: string): WindowGroups
   };
 }
 
+/**
+ * The window the user picked while it is still open; before any pick, the
+ * frontmost window that plays sound, which is the usual choice.
+ */
+export function selectedWindow(windows: WindowView[], picked: number | null): number | null {
+  if (picked !== null && windows.some((window) => window.handle === picked)) {
+    return picked;
+  }
+
+  return windows.find((window) => window.playingAudio)?.handle ?? null;
+}
+
 function normalize(value: string): string {
   return value
     .normalize("NFD")

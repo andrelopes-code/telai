@@ -1,0 +1,205 @@
+/* Telai: tokens and primitives shared by the app window and the player page.
+   The window sits on the Windows 11 Mica backdrop: its own colours are translucent tints over it,
+   and on systems without Mica the app sets data-backdrop="solid" on <html> for opaque tints. */
+
+:root {
+  color-scheme: light dark;
+
+  --font:
+    "Geist Variable", "Segoe UI Variable Text", system-ui, sans-serif; /* literal: font stack */
+
+  --tint-top: rgb(251 251 253 / 0.74); /* literal: palette */
+  --tint-bottom: rgb(241 243 247 / 0.86); /* literal: palette */
+  --glow: rgb(255 255 255 / 0.55); /* literal: palette */
+  --fill: rgb(10 14 22 / 0.045); /* literal: palette */
+  --fill-hover: rgb(10 14 22 / 0.075); /* literal: palette */
+  --fill-strong: rgb(10 14 22 / 0.1); /* literal: palette */
+  --stroke: rgb(10 14 22 / 0.08); /* literal: palette */
+  --stroke-strong: rgb(10 14 22 / 0.16); /* literal: palette */
+  --raised: rgb(255 255 255 / 0.82); /* literal: palette */
+  --text: #111419; /* literal: palette */
+  --text-2: rgb(17 20 25 / 0.66); /* literal: palette */
+  --text-3: rgb(17 20 25 / 0.44); /* literal: palette */
+  --live: #dd3138; /* literal: palette */
+  --live-hover: #e8434a; /* literal: palette */
+  --live-glow: rgb(221 49 56 / 0.32); /* literal: palette */
+  --on-live: #ffffff; /* literal: palette */
+  --attention: #8c4f00; /* literal: palette */
+  --attention-fill: rgb(214 140 30 / 0.13); /* literal: palette */
+  --done: #13804e; /* literal: palette */
+  --focus: #2f6fd6; /* literal: palette */
+  --focus-halo: rgb(47 111 214 / 0.18); /* literal: palette */
+  --primary: #111419; /* literal: palette */
+  --primary-hover: #262a31; /* literal: palette */
+  --on-primary: #ffffff; /* literal: palette */
+  --video: #000000; /* literal: palette */
+  --on-video: #f3f4f6; /* literal: palette */
+  --on-video-2: rgb(243 244 246 / 0.7); /* literal: palette */
+  --glass: rgb(16 18 22 / 0.56); /* literal: palette */
+  --glass-hover: rgb(16 18 22 / 0.72); /* literal: palette */
+  --glass-edge: rgb(255 255 255 / 0.14); /* literal: palette */
+  --veil: rgb(10 12 15 / 0.6); /* literal: palette */
+  --highlight: rgb(255 255 255 / 0.24); /* literal: palette */
+  --level-track: rgb(255 255 255 / 0.1); /* literal: palette */
+  --shadow-1: 0 1px 2px rgb(16 24 40 / 0.08), 0 1px 1px rgb(16 24 40 / 0.04); /* literal: palette */
+  --shadow-2:
+    0 2px 4px rgb(16 24 40 / 0.06), 0 12px 28px rgb(16 24 40 / 0.12); /* literal: palette */
+  --shadow-float: 0 10px 30px rgb(0 0 0 / 0.45); /* literal: palette */
+  --grain-opacity: 0.05; /* literal: grain strength */
+
+  --s-1: 4px; /* literal: spacing scale */
+  --s-2: 8px; /* literal: spacing scale */
+  --s-3: 12px; /* literal: spacing scale */
+  --s-4: 16px; /* literal: spacing scale */
+  --s-5: 20px; /* literal: spacing scale */
+  --s-6: 24px; /* literal: spacing scale */
+  --s-8: 32px; /* literal: spacing scale */
+
+  --r-s: 6px; /* literal: radius scale */
+  --r-m: 8px; /* literal: radius scale */
+  --r-l: 12px; /* literal: radius scale */
+  --r-full: 999px; /* literal: pill radius */
+
+  --t-xs: 12px; /* literal: type scale */
+  --t-s: 13px; /* literal: type scale */
+  --t-m: 15px; /* literal: type scale */
+  --t-l: 17px; /* literal: type scale */
+  --t-xl: 22px; /* literal: type scale */
+
+  --titlebar: 40px; /* literal: Windows caption button height */
+  --control: 32px; /* literal: control height */
+  --field: 36px; /* literal: field height */
+  --chip: 22px; /* literal: chip height */
+  --icon: 16px; /* literal: icon size */
+  --icon-m: 14px; /* literal: icon size in controls */
+  --icon-s: 12px; /* literal: small icon size */
+  --badge: 56px; /* literal: state badge */
+  --ring: 2px; /* literal: focus and selection ring */
+  --tight: -0.015em; /* literal: display tracking */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1); /* literal: exponential ease-out */
+  --fast: 140ms; /* literal: hover duration */
+  --slow: 320ms; /* literal: reveal duration */
+
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); /* literal: noise texture */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tint-top: rgb(36 38 44 / 0.72); /* literal: palette */
+    --tint-bottom: rgb(22 24 28 / 0.86); /* literal: palette */
+    --glow: rgb(255 255 255 / 0.06); /* literal: palette */
+    --fill: rgb(255 255 255 / 0.055); /* literal: palette */
+    --fill-hover: rgb(255 255 255 / 0.085); /* literal: palette */
+    --fill-strong: rgb(255 255 255 / 0.12); /* literal: palette */
+    --stroke: rgb(255 255 255 / 0.08); /* literal: palette */
+    --stroke-strong: rgb(255 255 255 / 0.17); /* literal: palette */
+    --raised: rgb(48 51 58 / 0.9); /* literal: palette */
+    --text: #eef0f3; /* literal: palette */
+    --text-2: rgb(238 240 243 / 0.66); /* literal: palette */
+    --text-3: rgb(238 240 243 / 0.42); /* literal: palette */
+    --live: #ec434a; /* literal: palette */
+    --live-hover: #f2575d; /* literal: palette */
+    --live-glow: rgb(236 67 74 / 0.4); /* literal: palette */
+    --attention: #f3b65d; /* literal: palette */
+    --attention-fill: rgb(243 182 93 / 0.11); /* literal: palette */
+    --done: #55c992; /* literal: palette */
+    --focus: #7aa7ff; /* literal: palette */
+    --focus-halo: rgb(122 167 255 / 0.2); /* literal: palette */
+    --primary: #eef0f3; /* literal: palette */
+    --primary-hover: #ffffff; /* literal: palette */
+    --on-primary: #121418; /* literal: palette */
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4); /* literal: palette */
+    --shadow-2: 0 2px 4px rgb(0 0 0 / 0.3), 0 16px 36px rgb(0 0 0 / 0.38); /* literal: palette */
+    --grain-opacity: 0.07; /* literal: grain strength */
+  }
+}
+
+/* Systems without Mica get the same tints, opaque. */
+:root[data-backdrop="solid"] {
+  --tint-top: #f6f7f9; /* literal: opaque fallback */
+  --tint-bottom: #eff1f4; /* literal: opaque fallback */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-backdrop="solid"] {
+    --tint-top: #1f2125; /* literal: opaque fallback */
+    --tint-bottom: #18191d; /* literal: opaque fallback */
+  }
+}
+
+/* Shared text and icon primitives */
+
+.icon {
+  flex: none;
+  inline-size: var(--icon);
+  block-size: var(--icon);
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Trimming the text box to cap height and baseline centres a label on its icon exactly. */
+.label {
+  text-box: trim-both cap alphabetic;
+  white-space: nowrap;
+}
+
+/* A clipped line keeps its descenders: only the inline axis is clipped. */
+.line {
+  min-inline-size: 0;
+  overflow-x: clip;
+  overflow-y: visible;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-box: trim-both cap alphabetic;
+}
+
+/* The app window is transparent so the Mica material shows through; the page fills it. */
+
+html,
+body,
+#root {
+  block-size: 100%;
+  margin: 0;
+  background: transparent;
+}
+
+*,
+::before,
+::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px); /* literal: rise distance */
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bars i,
+  .skeleton::after,
+  .tally-light,
+  .spinner,
+  .rec::after,
+  .monitor,
+  .notice,
+  .tile-check,
+  .player-pill,
+  .window[data-live]::after {
+    animation: none;
+  }
+
+  .tile-thumb,
+  .step-bar::after,
+  .button {
+    transition: none;
+  }
+}

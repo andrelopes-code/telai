@@ -11,6 +11,7 @@ export interface LiveSession {
   starting: boolean;
   start: (handle: number) => Promise<void>;
   stop: () => Promise<void>;
+  retry: () => Promise<void>;
 }
 
 /** The stream state kept by the app, with the commands that change it. */
@@ -62,5 +63,9 @@ export function useLiveSession(): LiveSession {
     setLive(null);
   }
 
-  return { status, live, ended, error, starting, start, stop };
+  async function retry(): Promise<void> {
+    setStatus(await bridge.retryServer());
+  }
+
+  return { status, live, ended, error, starting, start, stop, retry };
 }

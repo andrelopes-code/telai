@@ -1,42 +1,46 @@
 import { describe, expect, it } from "vitest";
 
-import type { LiveSnapshot } from "../types";
-import { stepStates } from "./step-states";
+import { liveStatus, liveSteps } from "./step-states";
 
-describe("stepStates", () => {
-  it("leaves every step pending until the player opens", () => {
-    expect(stepStates(snapshot({ viewers: 0 }), true)).toEqual({
-      open: "pending",
-      mute: "pending",
-      share: "pending",
-    });
+describe("liveSteps", () => {
+  it("starts at opening the player", () => {
+    expect(liveSteps({ viewers: 0, browserAudible: true, soundHeard: true })).toEqual([
+      "current",
+      "pending",
+      "pending",
+    ]);
   });
 
-  it("asks to mute the tab while the browser plays the sound", () => {
-    expect(stepStates(snapshot({ viewers: 1, browserAudible: true }), true).mute).toBe("attention");
+  it("asks for attention while the browser plays the sound", () => {
+    expect(liveSteps({ viewers: 1, browserAudible: true, soundHeard: true })).toEqual([
+      "done",
+      "attention",
+      "pending",
+    ]);
   });
 
-  it("confirms the mute once sound played and the browser stayed silent", () => {
-    expect(stepStates(snapshot({ viewers: 1 }), true)).toEqual({
-      open: "done",
-      mute: "done",
-      share: "pending",
-    });
+  it("waits for sound before confirming the mute", () => {
+    expect(liveSteps({ viewers: 1, browserAudible: false, soundHeard: false })).toEqual([
+      "done",
+      "current",
+      "pending",
+    ]);
   });
 
-  it("keeps the mute pending while the window is silent", () => {
-    expect(stepStates(snapshot({ viewers: 2 }), false).mute).toBe("pending");
+  it("leaves sharing as the current step once the tab is muted", () => {
+    expect(liveSteps({ viewers: 2, browserAudible: false, soundHeard: true })).toEqual([
+      "done",
+      "done",
+      "current",
+    ]);
   });
 });
 
-function snapshot(overrides: Partial<LiveSnapshot>): LiveSnapshot {
-  return {
-    source: { handle: 1, title: "Demo", processName: "player", icon: null },
-    startedAt: 0,
-    viewers: 0,
-    browserAudible: false,
-    minimized: false,
-    level: 0,
-    ...overrides,
-  };
-}
+describe("liveStatus", () => {
+  it("names the first unfinished step", () => {
+    expect(liveStatus(["current", "pending", "pending"])).toBe("open");
+    expect(liveStatus(["done", "current", "pending"])).toBe("mute");
+    expect(liveStatus(["done", "attention", "pending"])).toBe("muteAttention");
+    expect(liveStatus(["done", "done", "current"])).toBe("ready");
+  });
+});

@@ -1,6 +1,5 @@
 import type { WindowView } from "../types";
-import styles from "./WindowGroup.module.css";
-import { WindowRow } from "./WindowRow";
+import { WindowTile } from "./WindowTile";
 
 interface WindowGroupProps {
   label: string;
@@ -16,17 +15,22 @@ export function WindowGroup({ label, windows, selected, onSelect, onStart }: Win
   }
 
   return (
-    <section className={styles.group}>
-      <h2 className={styles.label}>{label}</h2>
-      {windows.map((window) => (
-        <WindowRow
-          key={window.handle}
-          window={window}
-          selected={window.handle === selected}
-          onSelect={onSelect}
-          onStart={onStart}
-        />
-      ))}
+    <section className="group">
+      <h2 className="group-label">
+        <span className="label">{label}</span>
+        <span className="label group-count">{windows.length}</span>
+      </h2>
+      <div className="gallery" role="radiogroup" aria-label={label}>
+        {windows.map((window) => (
+          <WindowTile
+            key={window.handle}
+            window={window}
+            selected={window.handle === selected}
+            onSelect={onSelect}
+            onStart={onStart}
+          />
+        ))}
+      </div>
     </section>
   );
 }

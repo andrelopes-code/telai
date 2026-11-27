@@ -1,9 +1,10 @@
 import { text } from "../i18n/text";
+import { GallerySkeleton } from "./GallerySkeleton";
 import type { WindowGroups } from "./group-windows";
+import { PickerEmpty } from "./PickerEmpty";
 import { WindowGroup } from "./WindowGroup";
-import styles from "./WindowList.module.css";
 
-interface WindowListProps {
+interface PickerBodyProps {
   groups: WindowGroups | null;
   query: string;
   selected: number | null;
@@ -11,18 +12,17 @@ interface WindowListProps {
   onStart: (handle: number) => void;
 }
 
-export function WindowList({ groups, query, selected, onSelect, onStart }: WindowListProps) {
+export function PickerBody({ groups, query, selected, onSelect, onStart }: PickerBodyProps) {
   if (groups === null) {
-    return <div className={styles.list} />;
+    return <GallerySkeleton />;
   }
 
-  const empty = groups.playing.length === 0 && groups.others.length === 0;
-  const emptyMessage = query.trim() === "" ? text.noWindows : text.noMatches(query.trim());
+  if (groups.playing.length === 0 && groups.others.length === 0) {
+    return <PickerEmpty query={query} />;
+  }
 
   return (
-    <div className={styles.list} role="radiogroup" aria-label={text.pickerTitle}>
-      {empty && <p className={styles.empty}>{emptyMessage}</p>}
-
+    <>
       <WindowGroup
         label={text.groupPlaying}
         windows={groups.playing}
@@ -38,6 +38,6 @@ export function WindowList({ groups, query, selected, onSelect, onStart }: Windo
         onSelect={onSelect}
         onStart={onStart}
       />
-    </div>
+    </>
   );
 }

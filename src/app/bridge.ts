@@ -10,6 +10,7 @@ export const bridge = {
   start: (handle: number) => invoke<LiveSnapshot>("start", { handle }),
   stop: () => invoke<undefined>("stop"),
   openPlayer: () => invoke<undefined>("open_player"),
+  retryServer: () => invoke<AppStatus>("retry_server"),
 
   onLive: (listener: (snapshot: LiveSnapshot) => void): Promise<UnlistenFn> =>
     listen<LiveSnapshot>("live", (event) => {

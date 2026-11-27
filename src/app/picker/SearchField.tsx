@@ -1,7 +1,6 @@
 import { Search } from "lucide-react";
 
 import { text } from "../i18n/text";
-import styles from "./SearchField.module.css";
 
 interface SearchFieldProps {
   value: string;
@@ -10,10 +9,10 @@ interface SearchFieldProps {
 
 export function SearchField({ value, onChange }: SearchFieldProps) {
   return (
-    <label className={styles.field}>
-      <Search className={styles.icon} size={16} aria-hidden />
+    <label className="search">
+      <Search className="icon" aria-hidden />
       <input
-        className={styles.input}
+        className="search-input"
         type="search"
         value={value}
         placeholder={text.searchPlaceholder}

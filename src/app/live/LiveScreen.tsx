@@ -1,11 +1,10 @@
-import { Notice } from "../common/Notice";
-import { text } from "../i18n/text";
 import type { LiveSnapshot } from "../types";
-import { LiveHeader } from "./LiveHeader";
-import styles from "./LiveScreen.module.css";
-import { SourceCard } from "./SourceCard";
-import { stepStates } from "./step-states";
-import { StepList } from "./StepList";
+import { LiveFooter } from "./LiveFooter";
+import { LiveStatus } from "./LiveStatus";
+import { LiveSteps } from "./LiveSteps";
+import { Monitor } from "./Monitor";
+import { SourceRow } from "./SourceRow";
+import { liveStatus, liveSteps } from "./step-states";
 import { useSoundHeard } from "./use-sound-heard";
 
 interface LiveScreenProps {
@@ -17,14 +16,20 @@ interface LiveScreenProps {
 export function LiveScreen({ live, url, onStop }: LiveScreenProps) {
   const soundHeard = useSoundHeard(live.level);
 
-  const steps = stepStates(live, soundHeard);
+  const steps = liveSteps({
+    viewers: live.viewers,
+    browserAudible: live.browserAudible,
+    soundHeard,
+  });
+  const status = liveStatus(steps);
 
   return (
-    <main className={styles.screen}>
-      <LiveHeader startedAt={live.startedAt} onStop={onStop} />
-      <SourceCard source={live.source} level={live.level} />
-      {live.minimized && <Notice tone="attention">{text.minimized}</Notice>}
-      <StepList steps={steps} viewers={live.viewers} url={url} />
+    <main className="live">
+      <LiveStatus status={status} />
+      <LiveSteps steps={steps} viewers={live.viewers} />
+      <Monitor live={live} url={url} />
+      <SourceRow source={live.source} onStop={onStop} />
+      <LiveFooter url={url} viewers={live.viewers} />
     </main>
   );
 }

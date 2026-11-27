@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { bridge } from "../bridge";
 import type { WindowView } from "../types";
 
-/** Windows open, close and start playing sound while the picker is shown. */
-const REFRESH_MS = 2000;
+/** Each refresh takes a still of every window, so it runs every 3 seconds. */
+const REFRESH_MS = 3000;
 
 /** The capturable windows, refreshed while the picker is mounted. */
 export function useWindows(): WindowView[] | null {

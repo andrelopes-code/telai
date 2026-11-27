@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { WindowView } from "../types";
-import { groupWindows } from "./group-windows";
+import { groupWindows, selectedWindow } from "./group-windows";
 
 describe("groupWindows", () => {
   it("puts windows playing sound first, keeping their order", () => {
@@ -29,11 +29,31 @@ describe("groupWindows", () => {
   });
 });
 
+describe("selectedWindow", () => {
+  const windows = [
+    window(1, "Notes", "notepad", false),
+    window(2, "Demo.mp4 - Media Player", "player", true),
+  ];
+
+  it("keeps the window the user picked", () => {
+    expect(selectedWindow(windows, 1)).toBe(1);
+  });
+
+  it("falls back to the first window playing sound", () => {
+    expect(selectedWindow(windows, null)).toBe(2);
+    expect(selectedWindow(windows, 99)).toBe(2);
+  });
+
+  it("selects nothing when no window plays sound", () => {
+    expect(selectedWindow([window(1, "Notes", "notepad", false)], null)).toBeNull();
+  });
+});
+
 function window(
   handle: number,
   title: string,
   processName: string,
   playingAudio: boolean,
 ): WindowView {
-  return { handle, title, processName, playingAudio, icon: null };
+  return { handle, title, processName, playingAudio, icon: null, thumbnail: null };
 }
