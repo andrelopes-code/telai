@@ -19,7 +19,7 @@ pub use audio::AudioCapture;
 pub use net::tcp_client_process;
 pub use process::{ProcessTree, image_path};
 pub use sessions::audible_processes;
-pub use system::supports_mica;
+pub use system::supports_acrylic;
 pub use video::{Frame, VideoCapture, VideoSink};
 pub use window::{WindowInfo, is_minimized, list_windows};
 

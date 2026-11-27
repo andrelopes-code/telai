@@ -40,7 +40,7 @@ impl CommandError {
 pub struct AppStatus {
     url: String,
     server_error: Option<String>,
-    /// "mica" when Windows paints the Mica material behind the window,
+    /// "acrylic" when Windows paints the Acrylic material behind the window,
     /// "solid" when the window must draw an opaque background.
     backdrop: &'static str,
     live: Option<LiveSnapshot>,
@@ -66,8 +66,8 @@ pub fn status(app: AppHandle, state: State<'_, AppState>) -> AppStatus {
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .clone(),
-        backdrop: if telai_capture::supports_mica() {
-            "mica"
+        backdrop: if telai_capture::supports_acrylic() {
+            "acrylic"
         } else {
             "solid"
         },

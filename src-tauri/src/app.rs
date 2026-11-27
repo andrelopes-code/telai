@@ -1,5 +1,6 @@
 use std::sync::{Mutex, PoisonError};
 
+use tauri::window::{Effect, EffectsBuilder};
 use tauri::{AppHandle, Manager, RunEvent, Window, WindowEvent};
 use telai_stream::{DEFAULT_PORT, Hub, Server};
 
@@ -76,8 +77,27 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
         live: Mutex::new(None),
     });
     start_server(app);
+    apply_backdrop(app);
 
     tray::create(app)
+}
+
+/// Paints the Acrylic material, which blurs the windows behind the app. Older
+/// builds draw it through an API that lags on every drag, so they get none
+/// and the page draws opaque tints instead.
+fn apply_backdrop(app: &AppHandle) {
+    let Some(window) = app.get_webview_window(MAIN_WINDOW) else {
+        return;
+    };
+
+    if !telai_capture::supports_acrylic() {
+        return;
+    }
+
+    let effects = EffectsBuilder::new().effect(Effect::Acrylic).build();
+    if let Err(error) = window.set_effects(effects) {
+        tracing::warn!(%error, "the Acrylic backdrop could not be applied");
+    }
 }
 
 /// Binds the player server and runs it in the background. A failure is kept

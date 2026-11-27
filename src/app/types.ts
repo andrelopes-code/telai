@@ -29,8 +29,8 @@ export interface LiveSnapshot {
   level: number;
 }
 
-/** "mica" when Windows paints the Mica material behind the window. */
-export type Backdrop = "mica" | "solid";
+/** "acrylic" when Windows paints the Acrylic material behind the window. */
+export type Backdrop = "acrylic" | "solid";
 
 export interface AppStatus {
   url: string;

@@ -1,6 +1,7 @@
 /* Telai: tokens and primitives shared by the app window and the player page.
-   The window sits on the Windows 11 Mica backdrop: its own colours are translucent tints over it,
-   and on systems without Mica the app sets data-backdrop="solid" on <html> for opaque tints. */
+   The window sits on the Windows 11 Acrylic backdrop, which blurs the windows behind it: its own
+   colours are light tints over it, and on systems without Acrylic the app sets
+   data-backdrop="solid" on <html> for opaque tints. */
 
 :root {
   color-scheme: light dark;
@@ -8,9 +9,8 @@
   --font:
     "Geist Variable", "Segoe UI Variable Text", system-ui, sans-serif; /* literal: font stack */
 
-  --tint-top: rgb(251 251 253 / 0.74); /* literal: palette */
-  --tint-bottom: rgb(241 243 247 / 0.86); /* literal: palette */
-  --glow: rgb(255 255 255 / 0.55); /* literal: palette */
+  --tint-top: rgb(251 251 253 / 0.3); /* literal: palette */
+  --tint-bottom: rgb(243 245 248 / 0.5); /* literal: palette */
   --fill: rgb(10 14 22 / 0.045); /* literal: palette */
   --fill-hover: rgb(10 14 22 / 0.075); /* literal: palette */
   --fill-strong: rgb(10 14 22 / 0.1); /* literal: palette */
@@ -85,9 +85,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --tint-top: rgb(36 38 44 / 0.72); /* literal: palette */
-    --tint-bottom: rgb(22 24 28 / 0.86); /* literal: palette */
-    --glow: rgb(255 255 255 / 0.06); /* literal: palette */
+    --tint-top: rgb(30 32 38 / 0.34); /* literal: palette */
+    --tint-bottom: rgb(20 22 26 / 0.56); /* literal: palette */
     --fill: rgb(255 255 255 / 0.055); /* literal: palette */
     --fill-hover: rgb(255 255 255 / 0.085); /* literal: palette */
     --fill-strong: rgb(255 255 255 / 0.12); /* literal: palette */
@@ -114,7 +113,7 @@
   }
 }
 
-/* Systems without Mica get the same tints, opaque. */
+/* Systems without Acrylic get the same tints, opaque. */
 :root[data-backdrop="solid"] {
   --tint-top: #f6f7f9; /* literal: opaque fallback */
   --tint-bottom: #eff1f4; /* literal: opaque fallback */
@@ -156,7 +155,7 @@
   text-box: trim-both cap alphabetic;
 }
 
-/* The app window is transparent so the Mica material shows through; the page fills it. */
+/* The app window is transparent so the Acrylic material shows through; the page fills it. */
 
 html,
 body,
