@@ -1,0 +1,27 @@
+[package]
+name = "telai-stream"
+description = "Local HTTP and WebSocket server that streams captured frames to a browser page"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+axum.workspace = true
+bytes.workspace = true
+fast_image_resize.workspace = true
+jpeg-encoder.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+futures-util = "0.3"
+tokio-tungstenite = "0.28"
+
+[lints]
+workspace = true
