@@ -2,7 +2,7 @@
 
 [Português](README.pt-BR.md)
 
-Telai streams one desktop window, with only that program's sound, to a tab in the browser. The tab can then be shared in Jitsi Meet, Google Meet or any call that shares browser tabs.
+Telai streams one desktop window, with only that program's sound, to a tab in the browser. The tab can then be shared in any browser call that shares tabs.
 
 <p>
   <img src="docs/images/picker.png" width="330" alt="Window picker, with the windows that play sound listed first">
@@ -11,7 +11,7 @@ Telai streams one desktop window, with only that program's sound, to a tab in th
 
 ## The problem
 
-Browser calls share audio in two ways: the audio of one tab, or the audio of the whole system. A desktop player such as VLC or Stremio has no tab, and the system audio also carries everything else on the PC, including the voices of a Discord call in progress.
+Browser calls share audio in two ways: the audio of one tab, or the audio of the whole system. A desktop program has no tab, and the system audio also carries everything else on the PC: notifications, other programs and any voice chat running at the same time.
 
 Telai captures the picture of one window and the audio of its process tree only. It plays both in a local page at `http://127.0.0.1:47823`. Sharing that tab in the call sends the program's picture and sound, and nothing else.
 
@@ -19,15 +19,15 @@ Telai captures the picture of one window and the audio of its process tree only.
 
 ```mermaid
 flowchart LR
-  window["Chosen window<br/>(VLC, Stremio, ...)"]
+  window["Chosen window"]
   app["Telai"]
   tab["Player tab<br/>Chrome or Edge"]
-  call["Call tab<br/>Jitsi Meet"]
+  meeting["Call tab"]
 
   window -- "Windows Graphics Capture" --> app
   window -- "WASAPI process loopback" --> app
   app -- "JPEG frames and PCM audio<br/>WebSocket on 127.0.0.1" --> tab
-  tab -- "Share tab, with tab audio" --> call
+  tab -- "Shared tab with its audio" --> meeting
 ```
 
 - **Video**: Windows Graphics Capture delivers the window at up to 30 fps. Two encoder threads turn each frame into a JPEG, scaled down to 1080p when larger. A frame that arrives while both threads are busy is dropped, so a slow machine loses frames instead of adding delay.
@@ -45,7 +45,7 @@ Telai checks which browser process holds the player connection and whether that 
 1. Run Telai and choose the window. Windows playing sound are listed first.
 2. Open the player in Chrome or Edge with **Open**, and click the page once to allow sound.
 3. Mute the player tab: right-click the tab, then **Mute site**.
-4. In Jitsi, choose **Share screen**, then **Chrome Tab**, then the Telai tab.
+4. In the call, share a tab and choose the Telai tab, with tab audio on.
 
 Closing the window while streaming keeps Telai in the notification area. Closing the captured window ends the stream.
 

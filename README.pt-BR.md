@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-O Telai transmite uma janela do computador, com o som apenas daquele programa, para uma aba do navegador. Essa aba pode ser compartilhada no Jitsi Meet, no Google Meet ou em qualquer chamada que compartilhe abas.
+O Telai transmite uma janela do computador, com o som apenas daquele programa, para uma aba do navegador. Essa aba pode ser compartilhada em qualquer chamada no navegador que compartilhe abas.
 
 <p>
   <img src="docs/images/picker.pt-BR.png" width="330" alt="Seleção de janela, com as janelas que tocam som no topo">
@@ -11,7 +11,7 @@ O Telai transmite uma janela do computador, com o som apenas daquele programa, p
 
 ## O problema
 
-Chamadas no navegador compartilham áudio de duas formas: o áudio de uma aba ou o áudio do sistema inteiro. Um player de desktop como o VLC ou o Stremio não tem aba. O áudio do sistema leva junto todo o resto do PC, incluindo as vozes de uma chamada do Discord em andamento.
+Chamadas no navegador compartilham áudio de duas formas: o áudio de uma aba ou o áudio do sistema inteiro. Um programa de desktop não tem aba. O áudio do sistema leva junto todo o resto do PC: notificações, outros programas e qualquer chat de voz aberto ao mesmo tempo.
 
 O Telai captura a imagem de uma janela e somente o áudio da árvore de processos dela. Ele toca os dois em uma página local, em `http://127.0.0.1:47823`. Compartilhar essa aba na chamada envia a imagem e o som do programa, e nada além disso.
 
@@ -19,15 +19,15 @@ O Telai captura a imagem de uma janela e somente o áudio da árvore de processo
 
 ```mermaid
 flowchart LR
-  window["Janela escolhida<br/>(VLC, Stremio, ...)"]
+  window["Janela escolhida"]
   app["Telai"]
   tab["Aba do player<br/>Chrome ou Edge"]
-  call["Aba da chamada<br/>Jitsi Meet"]
+  meeting["Aba da chamada"]
 
   window -- "Windows Graphics Capture" --> app
   window -- "WASAPI process loopback" --> app
   app -- "Quadros JPEG e áudio PCM<br/>WebSocket em 127.0.0.1" --> tab
-  tab -- "Compartilhar guia, com o áudio da guia" --> call
+  tab -- "Aba compartilhada com o áudio" --> meeting
 ```
 
 - **Vídeo**: o Windows Graphics Capture entrega a janela a até 30 fps. Duas threads de codificação convertem cada quadro em JPEG, reduzido para 1080p quando maior. Um quadro que chega com as duas threads ocupadas é descartado: em uma máquina lenta, a transmissão perde quadros em vez de acumular atraso.
@@ -45,7 +45,7 @@ O Telai identifica o processo do navegador dono da conexão do player e verifica
 1. Abra o Telai e escolha a janela. As janelas que tocam som aparecem primeiro.
 2. Abra o player no Chrome ou no Edge com **Abrir** e clique uma vez na página para liberar o som.
 3. Silencie a aba do player: botão direito na aba, depois **Desativar som do site**.
-4. No Jitsi, escolha **Compartilhar tela**, depois **Guia do Chrome**, depois a aba do Telai.
+4. Na chamada, compartilhe uma aba e escolha a aba do Telai, com o áudio da aba ligado.
 
 Fechar a janela do Telai durante a transmissão mantém o app na área de notificação. Fechar a janela capturada encerra a transmissão.
 
