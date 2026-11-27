@@ -64,14 +64,19 @@ impl Hub {
     }
 
     pub(crate) fn subscribe(&self) -> Subscription {
-        let mut video = self.video.subscribe();
-        video.mark_changed();
-
         Subscription {
-            video,
+            video: self.subscribe_video(),
             audio: self.audio.subscribe(),
             status: self.status.subscribe(),
         }
+    }
+
+    /// The latest frame and every later one, for a video-only reader.
+    pub(crate) fn subscribe_video(&self) -> watch::Receiver<Option<Bytes>> {
+        let mut video = self.video.subscribe();
+        video.mark_changed();
+
+        video
     }
 
     #[cfg(test)]

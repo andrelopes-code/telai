@@ -12,6 +12,7 @@ use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::http::HeaderValue;
 
 const TIMEOUT: Duration = Duration::from_secs(5);
+const APP_ORIGIN: &str = "http://tauri.localhost";
 
 #[tokio::test]
 async fn root_serves_the_player_page() {
@@ -109,6 +110,37 @@ async fn disconnected_viewers_are_removed() {
     wait_for_viewers(&hub, 0).await;
 }
 
+#[tokio::test]
+async fn the_app_window_receives_video_on_the_preview_without_counting_as_a_viewer() {
+    let (port, hub) = start().await;
+    hub.publish_video(Bytes::from_static(b"frame"));
+    hub.publish_audio(&[0.5, 0.5]);
+
+    let mut preview = connect_to(port, "/preview", APP_ORIGIN).await.unwrap();
+
+    let frame = next_message(&mut preview).await;
+    assert_eq!(frame, Message::Binary(Bytes::from_static(b"frame")));
+    assert!(hub.viewers().borrow().is_empty());
+}
+
+#[tokio::test]
+async fn the_app_origin_cannot_open_the_player_stream() {
+    let (port, _hub) = start().await;
+
+    let result = connect(port, APP_ORIGIN).await;
+
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn a_foreign_origin_cannot_open_the_preview() {
+    let (port, _hub) = start().await;
+
+    let result = connect_to(port, "/preview", "https://attacker.example").await;
+
+    assert!(result.is_err());
+}
+
 type Socket = tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<TcpStream>>;
 
 async fn start() -> (u16, Hub) {
@@ -122,13 +154,21 @@ async fn start() -> (u16, Hub) {
             mime_type: "text/html".into(),
         })
     });
-    tokio::spawn(server.serve(hub.clone(), assets));
+    tokio::spawn(server.serve(hub.clone(), assets, &[APP_ORIGIN]));
 
     (port, hub)
 }
 
 async fn connect(port: u16, origin: &str) -> Result<Socket, tokio_tungstenite::tungstenite::Error> {
-    let mut request = format!("ws://127.0.0.1:{port}/ws")
+    connect_to(port, "/ws", origin).await
+}
+
+async fn connect_to(
+    port: u16,
+    path: &str,
+    origin: &str,
+) -> Result<Socket, tokio_tungstenite::tungstenite::Error> {
+    let mut request = format!("ws://127.0.0.1:{port}{path}")
         .into_client_request()
         .unwrap();
     request

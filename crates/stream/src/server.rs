@@ -1,6 +1,7 @@
 use std::io;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::Router;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
@@ -9,8 +10,11 @@ use axum::http::{HeaderMap, HeaderValue, StatusCode, Uri, header};
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
+use bytes::Bytes;
 use tokio::net::TcpListener;
 use tokio::sync::broadcast::error::RecvError;
+use tokio::sync::watch;
+use tokio::time::Instant;
 
 use crate::hub::{Hub, Subscription};
 use crate::protocol::Status;
@@ -20,6 +24,10 @@ use crate::protocol::Status;
 pub const DEFAULT_PORT: u16 = 47823;
 
 const PLAYER_PAGE: &str = "player.html";
+
+/// The app window shows the preview at about a third of the frame width, so
+/// half the frame rate is enough and halves its decoding work.
+const PREVIEW_INTERVAL: Duration = Duration::from_millis(66);
 
 /// The page loads only its own files and talks only to this server.
 const CONTENT_SECURITY_POLICY: &str = "default-src 'self'; img-src 'self' data:";
@@ -46,6 +54,8 @@ struct AppState {
     hub: Hub,
     assets: AssetSource,
     allowed_hosts: Arc<[String]>,
+    player_origins: Arc<[String]>,
+    preview_origins: Arc<[String]>,
 }
 
 impl Server {
@@ -66,19 +76,39 @@ impl Server {
         format!("http://{}:{}", Ipv4Addr::LOCALHOST, self.port)
     }
 
-    /// Runs until the listener fails.
-    pub async fn serve(self, hub: Hub, assets: AssetSource) -> io::Result<()> {
+    /// Runs until the listener fails. `app_origins` are the origins of the
+    /// app window, which may open the video-only preview stream.
+    pub async fn serve(
+        self,
+        hub: Hub,
+        assets: AssetSource,
+        app_origins: &[&str],
+    ) -> io::Result<()> {
+        let allowed_hosts = [
+            format!("{}:{}", Ipv4Addr::LOCALHOST, self.port),
+            format!("localhost:{}", self.port),
+        ];
+        let player_origins: Vec<String> = allowed_hosts
+            .iter()
+            .map(|host| format!("http://{host}"))
+            .collect();
+        let preview_origins: Vec<String> = player_origins
+            .iter()
+            .cloned()
+            .chain(app_origins.iter().map(|origin| (*origin).to_owned()))
+            .collect();
+
         let state = AppState {
             hub,
             assets,
-            allowed_hosts: Arc::from([
-                format!("{}:{}", Ipv4Addr::LOCALHOST, self.port),
-                format!("localhost:{}", self.port),
-            ]),
+            allowed_hosts: Arc::from(allowed_hosts),
+            player_origins: Arc::from(player_origins),
+            preview_origins: Arc::from(preview_origins),
         };
 
         let router = Router::new()
             .route("/ws", get(open_websocket))
+            .route("/preview", get(open_preview))
             .fallback(get(serve_asset))
             .layer(middleware::from_fn_with_state(
                 state.clone(),
@@ -103,11 +133,13 @@ async fn reject_foreign_requests(
     next: Next,
 ) -> Response {
     let headers = request.headers();
-    let host_allowed = header_matches(headers, header::HOST, &state.allowed_hosts, "");
+    let host_allowed = header_matches(headers, header::HOST, &state.allowed_hosts);
 
-    let is_websocket = request.uri().path() == "/ws";
-    let origin_allowed =
-        !is_websocket || header_matches(headers, header::ORIGIN, &state.allowed_hosts, "http://");
+    let origin_allowed = match request.uri().path() {
+        "/ws" => header_matches(headers, header::ORIGIN, &state.player_origins),
+        "/preview" => header_matches(headers, header::ORIGIN, &state.preview_origins),
+        _ => true,
+    };
 
     if !host_allowed || !origin_allowed {
         return StatusCode::FORBIDDEN.into_response();
@@ -116,19 +148,12 @@ async fn reject_foreign_requests(
     next.run(request).await
 }
 
-fn header_matches(
-    headers: &HeaderMap,
-    name: header::HeaderName,
-    allowed_hosts: &[String],
-    scheme: &str,
-) -> bool {
+fn header_matches(headers: &HeaderMap, name: header::HeaderName, allowed: &[String]) -> bool {
     let Some(value) = headers.get(name).and_then(|value| value.to_str().ok()) else {
         return false;
     };
 
-    allowed_hosts
-        .iter()
-        .any(|host| value.strip_prefix(scheme) == Some(host.as_str()))
+    allowed.iter().any(|entry| entry == value)
 }
 
 async fn serve_asset(State(state): State<AppState>, uri: Uri) -> Response {
@@ -165,6 +190,14 @@ async fn open_websocket(
     State(state): State<AppState>,
 ) -> Response {
     upgrade.on_upgrade(move |socket| stream_to_viewer(socket, address, state.hub))
+}
+
+async fn open_preview(upgrade: WebSocketUpgrade, State(state): State<AppState>) -> Response {
+    upgrade.on_upgrade(move |mut socket| async move {
+        if let Err(error) = forward_preview(&mut socket, state.hub.subscribe_video()).await {
+            tracing::debug!(%error, "preview connection ended");
+        }
+    })
 }
 
 async fn stream_to_viewer(mut socket: WebSocket, address: SocketAddr, hub: Hub) {
@@ -209,6 +242,38 @@ async fn forward(
 
                 let status = subscription.status.borrow_and_update().clone();
                 socket.send(status_message(&status)).await?;
+            }
+            message = socket.recv() => match message {
+                None | Some(Ok(Message::Close(_))) => return Ok(()),
+                Some(Err(error)) => return Err(error),
+                Some(Ok(_)) => {}
+            },
+        }
+    }
+}
+
+/// Sends video only, at most every [`PREVIEW_INTERVAL`]. The preview is not
+/// a viewer: it plays no sound and does not count as an open player.
+async fn forward_preview(
+    socket: &mut WebSocket,
+    mut video: watch::Receiver<Option<Bytes>>,
+) -> Result<(), axum::Error> {
+    let mut next_frame = Instant::now();
+
+    loop {
+        tokio::select! {
+            changed = video.changed() => {
+                if changed.is_err() {
+                    return Ok(());
+                }
+
+                tokio::time::sleep_until(next_frame).await;
+                next_frame = Instant::now() + PREVIEW_INTERVAL;
+
+                let frame = video.borrow_and_update().clone();
+                if let Some(frame) = frame {
+                    socket.send(Message::Binary(frame)).await?;
+                }
             }
             message = socket.recv() => match message {
                 None | Some(Ok(Message::Close(_))) => return Ok(()),
