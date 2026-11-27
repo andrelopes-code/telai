@@ -9,7 +9,7 @@ use windows_capture::window::Window;
 
 use crate::process::{ProcessTree, image_path};
 use crate::sessions::audible_processes;
-use crate::{Error, icon};
+use crate::{Error, icon, thumbnail};
 
 /// `DWMWA_CLOAKED` writes one `u32`.
 const CLOAKED_SIZE: u32 = 4;
@@ -24,6 +24,8 @@ pub struct WindowInfo {
     /// Executable name without its extension.
     pub process_name: String,
     pub icon_png: Option<Vec<u8>>,
+    /// A still of the window as a JPEG; `None` while it is minimized.
+    pub thumbnail_jpeg: Option<Vec<u8>>,
     /// Whether the window's process tree is playing sound right now.
     pub playing_audio: bool,
 }
@@ -115,6 +117,7 @@ fn describe(window: &Window, process_id: u32, executable: Option<&Path>) -> Opti
         process_id,
         process_name,
         icon_png: executable.and_then(icon::executable_icon_png),
+        thumbnail_jpeg: thumbnail::window_thumbnail(hwnd),
         playing_audio: false,
     })
 }

@@ -10,6 +10,8 @@ mod icon;
 mod net;
 mod process;
 mod sessions;
+mod system;
+mod thumbnail;
 mod video;
 mod window;
 
@@ -17,6 +19,7 @@ pub use audio::AudioCapture;
 pub use net::tcp_client_process;
 pub use process::{ProcessTree, image_path};
 pub use sessions::audible_processes;
+pub use system::supports_mica;
 pub use video::{Frame, VideoCapture, VideoSink};
 pub use window::{WindowInfo, is_minimized, list_windows};
 

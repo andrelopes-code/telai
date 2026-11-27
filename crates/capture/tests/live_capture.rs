@@ -24,6 +24,12 @@ fn captures_the_picture_and_sound_of_a_window() {
         .expect("the test window is listed as playing sound");
     assert_eq!(window.process_id, child.0.id());
 
+    let thumbnail = window
+        .thumbnail_jpeg
+        .as_deref()
+        .expect("the window has a thumbnail");
+    assert_eq!(&thumbnail[..2], &[0xFF, 0xD8], "the thumbnail is a JPEG");
+
     let peak = capture_audio_peak(window.process_id);
     assert!(peak > 0.05, "captured audio peak {peak}");
 
