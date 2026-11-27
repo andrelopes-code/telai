@@ -59,7 +59,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: cargo clippy --workspace --all-targets -- -D warnings
-      - run: cargo test --workspace
+      # The live capture test plays a tone, so the runner needs an audio device.
+      - uses: LABSN/sound-ci-helpers@v1
+      - run: cargo test --workspace -- --include-ignored
       - run: pnpm tauri build
       - uses: actions/upload-artifact@v7
         with:

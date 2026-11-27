@@ -76,6 +76,8 @@ cargo test --workspace
 
 The `telai-stream` crate and the frontend build and test on any platform. The capture crate and the app build on Windows only.
 
+`cargo test --workspace -- --include-ignored` also runs a live capture test on Windows. It opens a window that plays a tone, then checks the window list, one captured frame and the captured audio. It needs a desktop session and an audio output device.
+
 ## Project layout
 
 | Path             | Contents                                                               |

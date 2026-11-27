@@ -76,6 +76,8 @@ cargo test --workspace
 
 O crate `telai-stream` e o frontend compilam e rodam os testes em qualquer plataforma. O crate de captura e o app compilam apenas no Windows.
 
+No Windows, `cargo test --workspace -- --include-ignored` também roda um teste de captura real. Ele abre uma janela que toca um tom e verifica a lista de janelas, um quadro capturado e o áudio capturado. O teste exige uma sessão de desktop e um dispositivo de saída de áudio.
+
 ## Estrutura
 
 | Caminho          | Conteúdo                                                                 |
