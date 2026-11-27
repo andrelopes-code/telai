@@ -89,11 +89,29 @@ fn capture(
         }
     };
 
-    if let Err(error) = read_until_stopped(&stream, stop, &mut on_samples) {
+    tracing::info!(process_id, "audio capture started");
+
+    let mut counts = PacketCounts::default();
+    if let Err(error) = read_until_stopped(&stream, stop, &mut counts, &mut on_samples) {
         tracing::error!(%error, "audio capture stopped");
     }
 
+    tracing::info!(
+        process_id,
+        packets = counts.packets,
+        silent = counts.silent,
+        "audio capture ended"
+    );
+
     let _ = stream.client.stop_stream();
+}
+
+/// Packets read during one capture. A silent count equal to the total means
+/// the process tree rendered nothing the loopback could hear.
+#[derive(Default)]
+struct PacketCounts {
+    packets: u64,
+    silent: u64,
 }
 
 struct Stream {
@@ -128,6 +146,7 @@ fn open_stream(process_id: u32) -> Result<Stream, WasapiError> {
 fn read_until_stopped(
     stream: &Stream,
     stop: &AtomicBool,
+    counts: &mut PacketCounts,
     on_samples: &mut impl FnMut(&[f32]),
 ) -> Result<(), WasapiError> {
     let mut bytes = Vec::new();
@@ -143,8 +162,13 @@ fn read_until_stopped(
             && frames > 0
         {
             bytes.resize(frames as usize * CHANNELS * BYTES_PER_SAMPLE, 0);
-            let (read, _) = stream.capture.read_from_device(&mut bytes)?;
+            let (read, info) = stream.capture.read_from_device(&mut bytes)?;
             let len = read as usize * CHANNELS * BYTES_PER_SAMPLE;
+
+            counts.packets += 1;
+            if info.flags.silent {
+                counts.silent += 1;
+            }
 
             samples.clear();
             let (chunks, _) = bytes[..len].as_chunks::<BYTES_PER_SAMPLE>();
