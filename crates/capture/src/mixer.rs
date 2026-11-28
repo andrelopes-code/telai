@@ -24,6 +24,11 @@ const TICK: Duration = Duration::from_millis(5);
 /// capture packets arriving a little late do not leave gaps.
 pub(crate) const TARGET_FRAMES: usize = 1_920;
 
+/// 20 ms at 48 kHz: how far a source's buffer may stray from
+/// [`TARGET_FRAMES`] before its clock drift is corrected. Wider than the
+/// jitter of 10 ms capture packets.
+const SLACK_FRAMES: usize = 960;
+
 /// 100 ms at 48 kHz. A source that piles up more than this drops its oldest
 /// samples down to [`TARGET_FRAMES`], so latency never grows.
 pub(crate) const MAX_FRAMES: usize = 4_800;
@@ -95,11 +100,35 @@ impl Mixer {
                 source.primed = true;
             }
 
+            let buffered = source.samples.len() / CHANNELS;
+            let drift = drift_correction(buffered, frames);
             let available = source.samples.len().min(wanted);
-            for (mixed, sample) in out.iter_mut().zip(source.samples.drain(..available)) {
+            let read = if drift == Drift::Behind {
+                available - CHANNELS
+            } else {
+                available
+            };
+
+            let mut last = [0.0; CHANNELS];
+            for (index, (mixed, sample)) in
+                out.iter_mut().zip(source.samples.drain(..read)).enumerate()
+            {
                 let sample = sample * source.gain;
                 source.peak = source.peak.max(sample.abs());
                 *mixed += sample;
+                last[index % CHANNELS] = sample;
+            }
+
+            match drift {
+                Drift::Behind => {
+                    for (mixed, sample) in out[read..read + CHANNELS].iter_mut().zip(last) {
+                        *mixed += sample;
+                    }
+                }
+                Drift::Ahead => {
+                    source.samples.drain(..CHANNELS);
+                }
+                Drift::None => {}
             }
 
             if available < wanted {
@@ -118,6 +147,32 @@ impl Mixer {
             .iter_mut()
             .map(|(id, source)| (*id, std::mem::take(&mut source.peak)))
             .collect()
+    }
+}
+
+/// Which way a source's buffer drifts from [`TARGET_FRAMES`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Drift {
+    None,
+    /// The app's audio clock runs faster than the mixer's: one frame is
+    /// skipped.
+    Ahead,
+    /// The app's audio clock runs slower: one frame is played twice.
+    Behind,
+}
+
+/// The audio device and the mixer keep time with different clocks, which
+/// differ by tens of parts per million. Skipping or repeating one frame when
+/// the buffer leaves the band around the target keeps latency steady with no
+/// audible gap, where waiting for an underrun or a trim would drop 40 ms or
+/// more every few minutes.
+fn drift_correction(buffered: usize, frames: usize) -> Drift {
+    if buffered > TARGET_FRAMES + SLACK_FRAMES {
+        Drift::Ahead
+    } else if buffered < TARGET_FRAMES - SLACK_FRAMES && buffered >= frames && frames > 1 {
+        Drift::Behind
+    } else {
+        Drift::None
     }
 }
 
@@ -341,6 +396,60 @@ mod tests {
         mixer.mix(10, &mut out);
 
         assert!(out.iter().all(|sample| *sample == 0.0));
+    }
+
+    fn buffered(mixer: &Mixer, id: u32) -> usize {
+        mixer.sources[&id].samples.len() / CHANNELS
+    }
+
+    #[test]
+    fn a_source_running_ahead_gives_up_one_extra_frame() {
+        let mut mixer = Mixer::default();
+        mixer.push(1, &frames(0.5, TARGET_FRAMES + SLACK_FRAMES + 100));
+        let mut out = Vec::new();
+
+        mixer.mix(480, &mut out);
+
+        assert_eq!(out.len(), 960);
+        assert_eq!(
+            buffered(&mixer, 1),
+            TARGET_FRAMES + SLACK_FRAMES + 100 - 481
+        );
+    }
+
+    #[test]
+    fn a_source_running_behind_repeats_one_frame() {
+        let mut mixer = Mixer::default();
+        let frames_total = u16::try_from(TARGET_FRAMES).unwrap();
+        let ramp: Vec<f32> = (0..frames_total)
+            .flat_map(|frame| {
+                let value = f32::from(frame) / f32::from(frames_total);
+                [value, value]
+            })
+            .collect();
+        mixer.push(1, &ramp);
+        let mut out = Vec::new();
+
+        for _ in 0..3 {
+            mixer.mix(480, &mut out);
+        }
+        // 480 frames left: below the band, so one frame is held back.
+        mixer.mix(480, &mut out);
+
+        assert_eq!(buffered(&mixer, 1), 1);
+        assert!(close(out[956], out[958]), "the last frame repeats");
+        assert!(out.iter().all(|sample| *sample > 0.0));
+    }
+
+    #[test]
+    fn a_source_within_the_band_is_read_as_is() {
+        let mut mixer = Mixer::default();
+        mixer.push(1, &frames(0.5, TARGET_FRAMES));
+        let mut out = Vec::new();
+
+        mixer.mix(480, &mut out);
+
+        assert_eq!(buffered(&mixer, 1), TARGET_FRAMES - 480);
     }
 
     #[test]
