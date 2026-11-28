@@ -57,6 +57,11 @@ function AudioMixRow({ app }: { app: AudioAppView }) {
       <span className="mix-name" title={app.name}>
         <AppIcon icon={app.icon} />
         <span className="line">{app.name}</span>
+        {app.hostsPlayer && (
+          <span className="mix-tag label" title={text.hostsPlayerHint}>
+            {text.hostsPlayer}
+          </span>
+        )}
       </span>
       <span
         className="mix-level"

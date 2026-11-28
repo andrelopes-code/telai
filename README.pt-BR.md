@@ -53,7 +53,7 @@ Fechar a janela do Telai durante a transmissão mantém o app na área de notifi
 
 ## Tela inteira
 
-O grupo **Telas** transmite um monitor inteiro. O som é uma mistura de todos os apps com uma sessão de áudio aberta, cada um capturado pelo WASAPI process loopback e somado a 48 kHz. A tela ao vivo lista esses apps com o nível de cada um: desmarcar um app tira o som dele da transmissão, e o controle deslizante define o volume dele na transmissão, sem mudar o que você ouve no PC. O Discord começa desmarcado, para que as pessoas da chamada não ouçam a própria voz de volta. As escolhas ficam salvas em `audio-mix.json`, na pasta de configuração do app.
+O grupo **Telas** transmite um monitor inteiro. O som é uma mistura de todos os apps com uma sessão de áudio aberta, cada um capturado pelo WASAPI process loopback e somado a 48 kHz. A tela ao vivo lista esses apps com o nível de cada um: desmarcar um app tira o som dele da transmissão, e o controle deslizante define o volume dele na transmissão, sem mudar o que você ouve no PC. O Discord começa desmarcado, para que as pessoas da chamada não ouçam a própria voz de volta, e o navegador que roda a aba do player também, porque geralmente é ele que roda a chamada. As escolhas ficam salvas em `audio-mix.json`, na pasta de configuração do app.
 
 A escolha é por app, não por aba: todas as abas de um navegador são um app só. Um app que começa a tocar durante a transmissão entra na mistura em cerca de um segundo.
 

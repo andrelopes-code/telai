@@ -59,6 +59,8 @@ export interface AudioAppView {
   name: string;
   icon: string | null;
   included: boolean;
+  /** The app runs a player tab, and usually the call: it starts left out. */
+  hostsPlayer: boolean;
   /** From 0 to 1. */
   volume: number;
   /** Peak level since the previous snapshot, after the volume, from 0 to 1. */

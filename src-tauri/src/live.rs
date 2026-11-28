@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, MutexGuard, PoisonError};
@@ -8,8 +9,8 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
 use telai_capture::{
-    AudioApp, AudioCapture, CaptureTarget, Frame, MixedAudioCapture, MonitorInfo, VideoCapture,
-    VideoSink, WindowInfo,
+    AudioApp, AudioCapture, CaptureTarget, Frame, MixedAudioCapture, MonitorInfo, ProcessTree,
+    VideoCapture, VideoSink, WindowInfo,
 };
 use telai_stream::EncoderPool;
 use telai_stream::protocol::Status;
@@ -83,6 +84,8 @@ pub struct AudioAppView {
     pub name: String,
     pub icon: Option<String>,
     pub included: bool,
+    /// The app runs a player tab of this stream, and usually the call too.
+    pub hosts_player: bool,
     /// From 0 to 1.
     pub volume: f32,
     /// Peak level since the previous snapshot, after the volume, from 0 to 1.
@@ -116,11 +119,27 @@ struct AppMix {
     capture: MixedAudioCapture,
     apps: Vec<AudioApp>,
     icons: HashMap<PathBuf, Option<String>>,
+    /// Apps that run a player tab: left out unless the user included them,
+    /// or the call would hear itself back.
+    player_hosts: HashSet<u32>,
 }
 
 impl AppMix {
     /// Takes the latest list of apps and makes the mix follow the choices.
-    fn update(&mut self, apps: Vec<AudioApp>, prefs: &AudioPrefs) {
+    fn update(&mut self, apps: Vec<AudioApp>, prefs: &AudioPrefs, viewers: &[u32]) {
+        self.player_hosts = match ProcessTree::snapshot() {
+            Ok(tree) => apps
+                .iter()
+                .filter(|app| {
+                    viewers
+                        .iter()
+                        .any(|&viewer| tree.is_within(viewer, app.process_id))
+                })
+                .map(|app| app.process_id)
+                .collect(),
+            Err(_) => HashSet::new(),
+        };
+
         for app in &apps {
             self.icons.entry(app.executable.clone()).or_insert_with(|| {
                 telai_capture::executable_icon_png(&app.executable)
@@ -136,7 +155,7 @@ impl AppMix {
         let included: Vec<(u32, f32)> = self
             .apps
             .iter()
-            .filter(|app| prefs.is_included(&app.name))
+            .filter(|app| self.is_included(app, prefs))
             .map(|app| (app.process_id, prefs.volume(&app.name)))
             .collect();
 
@@ -149,12 +168,13 @@ impl AppMix {
         self.apps
             .iter()
             .map(|app| {
-                let included = prefs.is_included(&app.name);
+                let included = self.is_included(app, prefs);
                 AudioAppView {
                     process_id: app.process_id,
                     name: app.name.clone(),
                     icon: self.icons.get(&app.executable).cloned().flatten(),
                     included,
+                    hosts_player: self.player_hosts.contains(&app.process_id),
                     volume: prefs.volume(&app.name),
                     level: if included {
                         levels.get(&app.process_id).copied().unwrap_or(0.0)
@@ -165,6 +185,30 @@ impl AppMix {
             })
             .collect()
     }
+
+    fn is_included(&self, app: &AudioApp, prefs: &AudioPrefs) -> bool {
+        is_included(
+            prefs.choice(&app.name),
+            self.player_hosts.contains(&app.process_id),
+        )
+    }
+}
+
+/// The user's choice, if any; otherwise every app is included except one
+/// that runs the player.
+fn is_included(choice: Option<bool>, hosts_player: bool) -> bool {
+    choice.unwrap_or(!hosts_player)
+}
+
+/// Processes that hold a player connection.
+fn viewer_processes(viewers: &[SocketAddr], server_port: u16) -> Vec<u32> {
+    viewers
+        .iter()
+        .filter_map(|viewer| match viewer {
+            SocketAddr::V4(address) => telai_capture::tcp_client_process(*address, server_port),
+            SocketAddr::V6(_) => None,
+        })
+        .collect()
 }
 
 /// State written by the capture threads and read by the monitor.
@@ -357,9 +401,12 @@ fn open_monitor_session(
         capture,
         apps: Vec::new(),
         icons: HashMap::new(),
+        player_hosts: HashSet::new(),
     };
+    let state = app.state::<AppState>();
+    let viewers = viewer_processes(&state.hub.viewers().borrow(), state.port);
     match telai_capture::audio_apps() {
-        Ok(apps) => mix.update(apps, &prefs(app)),
+        Ok(apps) => mix.update(apps, &prefs(app), &viewers),
         Err(error) => tracing::warn!(%error, "the apps playing sound could not be listed"),
     }
 
@@ -471,7 +518,8 @@ fn monitor(app: &AppHandle, id: u64, shared: &Shared) {
             if is_window {
                 minimized = telai_capture::is_minimized(shared.source.handle);
             } else {
-                audio_apps = list_audio_apps();
+                audio_apps =
+                    list_audio_apps().map(|apps| (apps, viewer_processes(&viewers, state.port)));
             }
             browser.update(&viewers, state.port, shared.process_id);
         }
@@ -497,8 +545,8 @@ fn monitor(app: &AppHandle, id: u64, shared: &Shared) {
             return;
         }
 
-        if let (Some(apps), Some(mix)) = (audio_apps, session.mix_mut()) {
-            mix.update(apps, &prefs);
+        if let (Some((apps, viewers)), Some(mix)) = (audio_apps, session.mix_mut()) {
+            mix.update(apps, &prefs, &viewers);
         }
 
         let snapshot = session.snapshot(viewers.len(), browser.audible(), minimized, &prefs);
@@ -570,6 +618,14 @@ impl VideoSink for EncoderSink {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_browser_running_the_player_starts_left_out() {
+        assert!(!is_included(None, true));
+        assert!(is_included(None, false));
+        assert!(is_included(Some(true), true));
+        assert!(!is_included(Some(false), false));
+    }
 
     #[test]
     fn a_monitor_is_titled_by_its_name_and_size() {

@@ -31,5 +31,5 @@ describe("mixRows", () => {
 });
 
 function app(processId: number, name: string, included: boolean): AudioAppView {
-  return { processId, name, icon: null, included, volume: 1, level: 0 };
+  return { processId, name, icon: null, included, hostsPlayer: false, volume: 1, level: 0 };
 }

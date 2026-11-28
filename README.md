@@ -53,7 +53,7 @@ Closing the window while streaming keeps Telai in the notification area. Closing
 
 ## Whole screen
 
-The **Screens** group streams a whole display. Its sound is a mix of every app that has an audio session open, each captured with WASAPI process loopback and summed at 48 kHz. The live screen lists those apps with their level: unchecking one leaves it out of the stream, and its slider sets how loud it is in the stream, without changing what you hear on the PC. Discord starts unchecked, so the people in the call do not hear themselves back. The choices are saved in `audio-mix.json` in the app config folder.
+The **Screens** group streams a whole display. Its sound is a mix of every app that has an audio session open, each captured with WASAPI process loopback and summed at 48 kHz. The live screen lists those apps with their level: unchecking one leaves it out of the stream, and its slider sets how loud it is in the stream, without changing what you hear on the PC. Discord starts unchecked, so the people in the call do not hear themselves back, and so does the browser that runs the player tab, which usually runs the call too. The choices are saved in `audio-mix.json` in the app config folder.
 
 The choice is per app, not per browser tab: every tab of a browser is one app. An app that starts playing during the stream joins the mix within about a second.
 

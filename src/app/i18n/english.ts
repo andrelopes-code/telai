@@ -39,6 +39,8 @@ export const english = {
   soundLevel: "Sound level",
   audioMixTitle: "Streamed sound",
   audioMixEmpty: "No app is playing sound",
+  hostsPlayer: "player",
+  hostsPlayerHint: "Runs the Telai player and usually the call, so it starts left out",
   includeApp: (name: string) => `Stream the sound of ${name}`,
   volumeOf: (name: string) => `Volume of ${name}`,
   previewOf: (title: string) => `Preview of ${title}`,

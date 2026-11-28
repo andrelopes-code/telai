@@ -41,6 +41,8 @@ export const portuguese: Strings = {
   soundLevel: "Nível do som",
   audioMixTitle: "Som transmitido",
   audioMixEmpty: "Nenhum app tocando som",
+  hostsPlayer: "player",
+  hostsPlayerHint: "Roda o player do Telai e geralmente a chamada, por isso começa desmarcado",
   includeApp: (name: string) => `Transmitir o som de ${name}`,
   volumeOf: (name: string) => `Volume de ${name}`,
   previewOf: (title: string) => `Prévia de ${title}`,

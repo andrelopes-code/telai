@@ -31,8 +31,22 @@ impl Default for AudioPrefs {
 }
 
 impl AudioPrefs {
+    /// Whether the user included (`true`) or left out (`false`) the app, or
+    /// `None` when neither they nor the defaults decided.
+    pub fn choice(&self, name: &str) -> Option<bool> {
+        let key = key(name);
+        if self.excluded.contains(&key) {
+            Some(false)
+        } else if self.volumes.contains_key(&key) {
+            Some(true)
+        } else {
+            None
+        }
+    }
+
+    #[cfg(test)]
     pub fn is_included(&self, name: &str) -> bool {
-        !self.excluded.contains(&key(name))
+        self.choice(name).unwrap_or(true)
     }
 
     /// From 0 to 1; 1 for an app never adjusted.
@@ -137,6 +151,19 @@ mod tests {
         assert!(!prefs.is_included("DiscordCanary"));
         assert!(prefs.is_included("vlc"));
         assert!(close(prefs.volume("vlc"), 1.0));
+    }
+
+    #[test]
+    fn only_a_choice_made_or_a_default_exclusion_counts_as_a_choice() {
+        let mut prefs = AudioPrefs::default();
+        assert_eq!(prefs.choice("vlc"), None);
+        assert_eq!(prefs.choice("Discord"), Some(false));
+
+        prefs.set("vlc", true, 1.0);
+        prefs.set("brave", false, 1.0);
+
+        assert_eq!(prefs.choice("VLC"), Some(true));
+        assert_eq!(prefs.choice("brave"), Some(false));
     }
 
     #[test]

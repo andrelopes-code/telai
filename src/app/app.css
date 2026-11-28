@@ -951,6 +951,16 @@
   font-weight: 600;
 }
 
+.mix-tag {
+  flex: none;
+  padding-inline: 6px; /* literal: tag inset */
+  border-radius: var(--r-full);
+  font-size: var(--t-xs);
+  font-weight: 500;
+  color: var(--text-2);
+  background: var(--fill-strong);
+}
+
 .mix-level {
   display: block;
   block-size: 4px; /* literal: level bar */
