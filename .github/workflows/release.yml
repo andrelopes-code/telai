@@ -28,4 +28,5 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: Telai ${{ github.ref_name }}
           releaseBody: See the README for setup and usage.
-          releaseDraft: true
+          releaseDraft: false
+          prerelease: false
