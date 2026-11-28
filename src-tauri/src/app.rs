@@ -1,9 +1,11 @@
+use std::path::PathBuf;
 use std::sync::{Mutex, PoisonError};
 
 use tauri::window::{Effect, EffectsBuilder};
 use tauri::{AppHandle, Manager, RunEvent, Window, WindowEvent};
 use telai_stream::{DEFAULT_PORT, Hub, Server};
 
+use crate::audio_prefs::{self, AudioPrefs};
 use crate::live::LiveSession;
 use crate::{assets, commands, live, tray};
 
@@ -23,6 +25,11 @@ pub struct AppState {
     /// Why the player server is not running, when it is not.
     pub server_error: Mutex<Option<String>>,
     pub live: Mutex<Option<LiveSession>>,
+    /// Which apps a screen stream carries, and how loud.
+    pub audio_prefs: Mutex<AudioPrefs>,
+    /// Where the audio choices are saved; `None` when the app has no config
+    /// directory.
+    pub audio_prefs_path: Option<PathBuf>,
 }
 
 pub fn run() {
@@ -43,6 +50,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::status,
             commands::list_windows,
+            commands::list_monitors,
+            commands::set_audio_app,
             commands::start,
             commands::stop,
             commands::open_player,
@@ -69,12 +78,24 @@ pub fn show_main_window(app: &AppHandle) {
 }
 
 fn setup(app: &AppHandle) -> tauri::Result<()> {
+    let audio_prefs_path = app
+        .path()
+        .app_config_dir()
+        .ok()
+        .map(|dir| dir.join(audio_prefs::FILE_NAME));
+    let audio_prefs = audio_prefs_path
+        .as_deref()
+        .map(audio_prefs::load)
+        .unwrap_or_default();
+
     app.manage(AppState {
         hub: Hub::new(),
         port: DEFAULT_PORT,
         url: format!("http://127.0.0.1:{DEFAULT_PORT}"),
         server_error: Mutex::new(None),
         live: Mutex::new(None),
+        audio_prefs: Mutex::new(audio_prefs),
+        audio_prefs_path,
     });
     start_server(app);
     apply_backdrop(app);

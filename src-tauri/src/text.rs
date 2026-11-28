@@ -7,6 +7,8 @@ pub struct Text {
     pub quit: &'static str,
     pub idle_tooltip: &'static str,
     pub live_tooltip: &'static str,
+    /// Names a display that reports no model name: "Screen 2".
+    pub screen: &'static str,
 }
 
 const ENGLISH: Text = Text {
@@ -15,6 +17,7 @@ const ENGLISH: Text = Text {
     quit: "Quit",
     idle_tooltip: "Telai",
     live_tooltip: "Telai: streaming",
+    screen: "Screen",
 };
 
 const PORTUGUESE: Text = Text {
@@ -23,6 +26,7 @@ const PORTUGUESE: Text = Text {
     quit: "Sair",
     idle_tooltip: "Telai",
     live_tooltip: "Telai: transmitindo",
+    screen: "Tela",
 };
 
 /// Picks the translation for the system language.

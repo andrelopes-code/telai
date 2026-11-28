@@ -12,7 +12,7 @@ use tauri::{AppHandle, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
 use crate::app::AppState;
-use crate::live::{self, LiveSnapshot};
+use crate::live::{self, LiveSnapshot, SourceRef};
 
 /// Failure of a command, with a code that the window translates.
 #[derive(Debug, Serialize)]
@@ -97,9 +97,44 @@ pub async fn list_windows() -> Result<Vec<WindowView>, CommandError> {
     Ok(views)
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MonitorView {
+    handle: isize,
+    number: usize,
+    name: String,
+    width: u32,
+    height: u32,
+    primary: bool,
+    thumbnail: Option<String>,
+}
+
 #[tauri::command]
-pub async fn start(app: AppHandle, handle: isize) -> Result<LiveSnapshot, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || live::start(&app, handle))
+pub async fn list_monitors() -> Result<Vec<MonitorView>, CommandError> {
+    let monitors = tauri::async_runtime::spawn_blocking(telai_capture::list_monitors)
+        .await
+        .map_err(|error| CommandError::Internal(error.to_string()))?
+        .map_err(CommandError::video)?;
+
+    let views = monitors
+        .into_iter()
+        .map(|monitor| MonitorView {
+            handle: monitor.handle,
+            number: monitor.number,
+            thumbnail: monitor.thumbnail_jpeg.as_deref().map(jpeg_data_url),
+            name: monitor.name,
+            width: monitor.width,
+            height: monitor.height,
+            primary: monitor.primary,
+        })
+        .collect();
+
+    Ok(views)
+}
+
+#[tauri::command]
+pub async fn start(app: AppHandle, source: SourceRef) -> Result<LiveSnapshot, CommandError> {
+    tauri::async_runtime::spawn_blocking(move || live::start(&app, source))
         .await
         .map_err(|error| CommandError::Internal(error.to_string()))?
 }
@@ -109,6 +144,22 @@ pub async fn stop(app: AppHandle) -> Result<(), CommandError> {
     tauri::async_runtime::spawn_blocking(move || live::stop(&app))
         .await
         .map_err(|error| CommandError::Internal(error.to_string()))
+}
+
+/// Includes or leaves out the app `name` in screen streams, at `volume`
+/// from 0 to 1.
+#[tauri::command]
+pub async fn set_audio_app(
+    app: AppHandle,
+    name: String,
+    included: bool,
+    volume: f32,
+) -> Result<(), CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        live::set_audio_app(&app, &name, included, volume);
+    })
+    .await
+    .map_err(|error| CommandError::Internal(error.to_string()))
 }
 
 #[tauri::command]
