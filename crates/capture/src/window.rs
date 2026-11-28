@@ -61,7 +61,8 @@ pub fn list_windows() -> Result<Vec<WindowInfo>, Error> {
                 process_id = hosted_process(process_id, core_window_process(frame));
             }
 
-            describe(window, process_id, executable_of(&mut executables, process_id))
+            let executable = executable_of(&mut executables, process_id);
+            describe(window, process_id, executable)
         })
         .map(|mut info| {
             info.playing_audio = audible
