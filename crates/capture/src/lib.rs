@@ -7,6 +7,7 @@
 
 mod audio;
 mod icon;
+mod mixer;
 mod monitor;
 mod net;
 mod process;
