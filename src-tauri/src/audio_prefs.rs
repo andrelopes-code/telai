@@ -4,6 +4,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
+use std::sync::{Mutex, PoisonError};
 
 use serde::{Deserialize, Serialize};
 
@@ -60,9 +61,34 @@ impl AudioPrefs {
             std::fs::create_dir_all(dir)?;
         }
 
+        // A file written in place could be left half written; a renamed one
+        // is either the old file or the new one.
         let json = serde_json::to_string_pretty(self).map_err(std::io::Error::other)?;
-        std::fs::write(path, json)
+        let temporary = path.with_extension("json.tmp");
+        std::fs::write(&temporary, json)?;
+        std::fs::rename(&temporary, path)
     }
+}
+
+/// Applies one choice and saves the result while still holding the lock, so
+/// that saves never overlap or land out of order. Returns the new choices.
+pub fn update(
+    prefs: &Mutex<AudioPrefs>,
+    path: Option<&Path>,
+    name: &str,
+    included: bool,
+    volume: f32,
+) -> AudioPrefs {
+    let mut prefs = prefs.lock().unwrap_or_else(PoisonError::into_inner);
+    prefs.set(name, included, volume);
+
+    if let Some(path) = path
+        && let Err(error) = prefs.save(path)
+    {
+        tracing::warn!(%error, "the audio choices could not be saved");
+    }
+
+    prefs.clone()
 }
 
 /// The saved choices, or the defaults when there are none yet or the file
@@ -136,5 +162,46 @@ mod tests {
         assert!(close(loaded.volume("DISCORD"), 0.3));
         assert!(!loaded.is_included("vlc"));
         assert!(close(loaded.volume("vlc"), 1.0));
+    }
+}
+
+#[cfg(test)]
+mod concurrency_tests {
+    use std::sync::{Arc, Mutex};
+
+    use super::*;
+
+    #[test]
+    fn overlapping_changes_leave_a_valid_file_with_the_last_state() {
+        let dir = std::env::temp_dir()
+            .join("telai-audio-prefs-test")
+            .join(format!("concurrent-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let path = dir.join("audio-mix.json");
+        let prefs = Arc::new(Mutex::new(AudioPrefs::default()));
+
+        let threads: Vec<_> = (0..8)
+            .map(|thread| {
+                let prefs = Arc::clone(&prefs);
+                let path = path.clone();
+                std::thread::spawn(move || {
+                    for step in 0..40 {
+                        let name = format!("app-with-a-longer-name-{thread}-{step}");
+                        update(&prefs, Some(&path), &name, step % 2 == 0, 0.5);
+                    }
+                })
+            })
+            .collect();
+        for thread in threads {
+            thread.join().unwrap();
+        }
+
+        let json = std::fs::read_to_string(&path).unwrap();
+        let saved: AudioPrefs = serde_json::from_str(&json).expect("the file is valid JSON");
+        let in_memory = prefs.lock().unwrap().clone();
+        assert_eq!(saved.volumes, in_memory.volumes);
+        assert_eq!(saved.excluded, in_memory.excluded);
+        assert!(!saved.is_included("discord"));
+        assert!(!dir.join("audio-mix.json.tmp").exists());
     }
 }

@@ -15,7 +15,7 @@ use telai_stream::EncoderPool;
 use telai_stream::protocol::Status;
 
 use crate::app::AppState;
-use crate::audio_prefs::AudioPrefs;
+use crate::audio_prefs::{self, AudioPrefs};
 use crate::browser_audio::BrowserAudio;
 use crate::commands::{CommandError, icon_data_url};
 use crate::text::text;
@@ -298,20 +298,13 @@ pub fn stop(app: &AppHandle) {
 /// applies it to the running stream at once.
 pub fn set_audio_app(app: &AppHandle, name: &str, included: bool, volume: f32) {
     let state = app.state::<AppState>();
-    let prefs = {
-        let mut prefs = state
-            .audio_prefs
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner);
-        prefs.set(name, included, volume);
-        prefs.clone()
-    };
-
-    if let Some(path) = &state.audio_prefs_path
-        && let Err(error) = prefs.save(path)
-    {
-        tracing::warn!(%error, "the audio choices could not be saved");
-    }
+    let prefs = audio_prefs::update(
+        &state.audio_prefs,
+        state.audio_prefs_path.as_deref(),
+        name,
+        included,
+        volume,
+    );
 
     if let Some(mix) = lock_live(app).as_mut().and_then(LiveSession::mix_mut) {
         mix.sync(&prefs);
@@ -484,11 +477,14 @@ fn monitor(app: &AppHandle, id: u64, shared: &Shared) {
         }
         tick += 1;
 
-        let prefs = prefs(app);
         let mut live = lock_live(app);
         let Some(session) = live.as_mut().filter(|session| session.id == id) else {
             return;
         };
+        // Read after the session lock, so a choice saved while this loop
+        // waited for it is not overwritten by an older copy. Nothing holds the
+        // choices while waiting for the session, so the order cannot deadlock.
+        let prefs = prefs(app);
 
         if session.is_finished() {
             drop(live);
