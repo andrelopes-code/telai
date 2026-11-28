@@ -1,4 +1,5 @@
-import type { WindowView } from "../types";
+import { text } from "../i18n/text";
+import type { MonitorView, SourceRef, WindowView } from "../types";
 
 export interface WindowGroups {
   playing: WindowView[];
@@ -23,16 +24,42 @@ export function groupWindows(windows: WindowView[], query: string): WindowGroups
   };
 }
 
+/** The monitors whose name or number contains the query, ignoring case and accents. */
+export function filterMonitors(monitors: MonitorView[], query: string): MonitorView[] {
+  const needle = normalize(query.trim());
+
+  return monitors.filter((monitor) => normalize(monitorLabel(monitor)).includes(needle));
+}
+
+/** The display model, or "Screen 2" for a display that reports none. */
+export function monitorLabel(monitor: MonitorView): string {
+  const name = monitor.name.trim();
+
+  return name === "" ? text.screenName(monitor.number) : name;
+}
+
 /**
- * The window the user picked while it is still open; before any pick, the
- * frontmost window that plays sound, which is the usual choice.
+ * The window or monitor the user picked while it is still there; before any
+ * pick, the frontmost window that plays sound, which is the usual choice.
  */
-export function selectedWindow(windows: WindowView[], picked: number | null): number | null {
-  if (picked !== null && windows.some((window) => window.handle === picked)) {
-    return picked;
+export function selectedSource(
+  windows: WindowView[],
+  monitors: MonitorView[],
+  picked: SourceRef | null,
+): SourceRef | null {
+  if (picked !== null) {
+    const listed =
+      picked.kind === "window"
+        ? windows.some((window) => window.handle === picked.handle)
+        : monitors.some((monitor) => monitor.handle === picked.handle);
+    if (listed) {
+      return picked;
+    }
   }
 
-  return windows.find((window) => window.playingAudio)?.handle ?? null;
+  const playing = windows.find((window) => window.playingAudio);
+
+  return playing === undefined ? null : { kind: "window", handle: playing.handle };
 }
 
 function normalize(value: string): string {

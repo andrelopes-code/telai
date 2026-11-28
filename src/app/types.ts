@@ -10,7 +10,29 @@ export interface WindowView {
   playingAudio: boolean;
 }
 
+/** A display that can be streamed whole. */
+export interface MonitorView {
+  handle: number;
+  /** One-based, in the order Windows lists the displays. */
+  number: number;
+  /** The display model; empty when Windows reports none. */
+  name: string;
+  width: number;
+  height: number;
+  primary: boolean;
+  thumbnail: string | null;
+}
+
+export type SourceKind = "window" | "monitor";
+
+/** What the user picks to stream. */
+export interface SourceRef {
+  kind: SourceKind;
+  handle: number;
+}
+
 export interface SourceView {
+  kind: SourceKind;
   handle: number;
   title: string;
   processName: string;
@@ -26,6 +48,20 @@ export interface LiveSnapshot {
   browserAudible: boolean;
   minimized: boolean;
   /** Peak audio level since the previous snapshot, from 0 to 1. */
+  level: number;
+  /** The apps a screen stream can carry; null for a window. */
+  audioApps: AudioAppView[] | null;
+}
+
+/** An app with sound during a screen stream. */
+export interface AudioAppView {
+  processId: number;
+  name: string;
+  icon: string | null;
+  included: boolean;
+  /** From 0 to 1. */
+  volume: number;
+  /** Peak level since the previous snapshot, after the volume, from 0 to 1. */
   level: number;
 }
 

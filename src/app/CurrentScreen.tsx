@@ -30,7 +30,7 @@ export function CurrentScreen({ session, status }: CurrentScreenProps) {
       ended={session.ended}
       error={session.error}
       starting={session.starting}
-      onStart={(handle) => void session.start(handle)}
+      onStart={(source) => void session.start(source)}
     />
   );
 }

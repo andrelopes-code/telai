@@ -2,12 +2,23 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 
-import type { AppStatus, CommandError, EndReason, LiveSnapshot, WindowView } from "./types";
+import type {
+  AppStatus,
+  CommandError,
+  EndReason,
+  LiveSnapshot,
+  MonitorView,
+  SourceRef,
+  WindowView,
+} from "./types";
 
 export const bridge = {
   status: () => invoke<AppStatus>("status"),
   listWindows: () => invoke<WindowView[]>("list_windows"),
-  start: (handle: number) => invoke<LiveSnapshot>("start", { handle }),
+  listMonitors: () => invoke<MonitorView[]>("list_monitors"),
+  start: (source: SourceRef) => invoke<LiveSnapshot>("start", { source }),
+  setAudioApp: (name: string, included: boolean, volume: number) =>
+    invoke<undefined>("set_audio_app", { name, included, volume }),
   stop: () => invoke<undefined>("stop"),
   openPlayer: () => invoke<undefined>("open_player"),
   retryServer: () => invoke<AppStatus>("retry_server"),

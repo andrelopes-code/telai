@@ -37,11 +37,13 @@
 ### Task 1: Monitor as a capture target
 
 **Files:**
+
 - Create: `crates/capture/src/monitor.rs`
 - Modify: `crates/capture/src/video.rs` (`VideoCapture::start`), `crates/capture/src/thumbnail.rs` (add monitor still), `crates/capture/src/lib.rs` (exports)
 - Test: `crates/capture/tests/live_capture.rs`
 
 **Interfaces:**
+
 - Produces:
   - `pub enum CaptureTarget { Window(isize), Monitor(isize) }` in `video.rs` (handle = `HWND` or `HMONITOR` as integer), exported from `lib.rs`.
   - `VideoCapture::start(target: CaptureTarget, sink: impl VideoSink) -> Result<Self, Error>` (replaces the `handle: isize` parameter). For `Monitor`, build `Settings` with `Monitor::from_raw_hmonitor`; the window existence check applies only to `Window`. `buffer_without_title_bar` already returns the full frame for monitors.
@@ -84,9 +86,11 @@ Expected: CI run on the commit is green, and the `Windows app` job log shows `li
 ### Task 2: Listing the apps that play sound
 
 **Files:**
+
 - Modify: `crates/capture/src/sessions.rs`, `crates/capture/src/process.rs`, `crates/capture/src/lib.rs`
 
 **Interfaces:**
+
 - Consumes: `ProcessTree::snapshot`, `image_path`.
 - Produces:
   - `pub fn parent(&self, process_id: u32) -> Option<u32>` on `ProcessTree` (None for 0, self-parent or unknown).
@@ -130,9 +134,11 @@ git push origin main
 ### Task 3: Mixer core
 
 **Files:**
+
 - Create: `crates/capture/src/mixer.rs`
 
 **Interfaces:**
+
 - Produces (crate-private, used by Task 4):
   - `pub(crate) const TARGET_FRAMES: usize = 1_920;` (40 ms) and `MAX_FRAMES: usize = 4_800;` (100 ms)
   - `pub(crate) struct Mixer` with:
@@ -236,10 +242,12 @@ git push origin main
 ### Task 4: Mixed audio capture
 
 **Files:**
+
 - Modify: `crates/capture/src/audio.rs` (no behavior change; `AudioCapture` is reused per app), `crates/capture/src/mixer.rs` (runtime part), `crates/capture/src/lib.rs`
 - Test: `crates/capture/tests/live_capture.rs`
 
 **Interfaces:**
+
 - Consumes: `Mixer`, `AudioCapture::start(process_id, on_samples)`.
 - Produces:
   - `pub struct MixedAudioCapture` with:
@@ -286,10 +294,12 @@ Expected: green, and `mixes_only_the_included_apps ... ok` in the `Windows app` 
 ### Task 5: Saved audio choices
 
 **Files:**
+
 - Create: `src-tauri/src/audio_prefs.rs`
 - Modify: `src-tauri/src/main.rs` (`mod audio_prefs;`)
 
 **Interfaces:**
+
 - Produces:
   - `#[derive(Serialize, Deserialize)] pub struct AudioPrefs { excluded: BTreeSet<String>, volumes: BTreeMap<String, f32> }` with `Default` = Discord names excluded, no volumes.
   - `pub fn load(path: &Path) -> AudioPrefs`: defaults when the file is missing or invalid (warn on invalid).
@@ -344,9 +354,11 @@ git push origin main
 ### Task 6: Live session with a monitor and the mix
 
 **Files:**
+
 - Modify: `src-tauri/src/live.rs`, `src-tauri/src/commands.rs`, `src-tauri/src/app.rs` (register commands, keep `Mutex<AudioPrefs>` and its path in `AppState`)
 
 **Interfaces:**
+
 - Consumes: `CaptureTarget`, `list_monitors`, `audio_apps`, `MixedAudioCapture`, `AudioPrefs`, `icon_data_url`, `executable_icon_png`.
 - Produces (IPC, camelCase JSON):
   - `#[serde(tag = "kind", rename_all = "camelCase")] enum SourceRef { Window { handle: isize }, Monitor { handle: isize } }`.
@@ -374,11 +386,13 @@ git push origin main
 ### Task 7: Picker lists the monitors
 
 **Files:**
+
 - Modify: `src/app/types.ts`, `src/app/bridge.ts`, `src/app/use-live-session.ts`, `src/app/CurrentScreen.tsx`, `src/app/picker/PickerScreen.tsx`, `src/app/picker/PickerBody.tsx`, `src/app/picker/PickerFooter.tsx`, `src/app/picker/group-windows.ts`, `src/app/i18n/english.ts`, `src/app/i18n/portuguese.ts`, `src/app/common/error-message.ts`
 - Create: `src/app/picker/use-sources.ts` (replaces `use-windows.ts`), `src/app/picker/MonitorGroup.tsx`, `src/app/picker/MonitorTile.tsx`
 - Test: `src/app/picker/group-windows.test.ts`
 
 **Interfaces:**
+
 - Consumes: Task 6 IPC.
 - Produces:
   - `type SourceRef = { kind: "window"; handle: number } | { kind: "monitor"; handle: number }`; `MonitorView`; `AudioAppView`; `SourceView.kind`; `LiveSnapshot.audioApps: AudioAppView[] | null`.
@@ -404,10 +418,12 @@ git push origin main
 ### Task 8: Audio panel on the live screen
 
 **Files:**
+
 - Create: `src/app/live/AudioMix.tsx`, `src/app/live/audio-mix.ts`, `src/app/live/audio-mix.test.ts`
 - Modify: `src/app/live/LiveScreen.tsx`, `src/app/app.css`, `src/app/i18n/english.ts`, `src/app/i18n/portuguese.ts`, `README.md`, `README.pt-BR.md`, `src-tauri/tauri.conf.json` (`shortDescription`)
 
 **Interfaces:**
+
 - Consumes: `LiveSnapshot.audioApps`, `bridge.setAudioApp`, `levelPercent`.
 - Produces:
   - `mixRows(apps: AudioAppView[]): AudioAppView[]` in `audio-mix.ts`: included apps first, then by name; the same name with several processes keeps process order.

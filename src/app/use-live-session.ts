@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { bridge } from "./bridge";
-import type { AppStatus, EndReason, LiveSnapshot } from "./types";
+import type { AppStatus, EndReason, LiveSnapshot, SourceRef } from "./types";
 
 export interface LiveSession {
   status: AppStatus | null;
@@ -9,7 +9,7 @@ export interface LiveSession {
   ended: EndReason | null;
   error: unknown;
   starting: boolean;
-  start: (handle: number) => Promise<void>;
+  start: (source: SourceRef) => Promise<void>;
   stop: () => Promise<void>;
   retry: () => Promise<void>;
 }
@@ -44,13 +44,13 @@ export function useLiveSession(): LiveSession {
     };
   }, []);
 
-  async function start(handle: number): Promise<void> {
+  async function start(source: SourceRef): Promise<void> {
     setStarting(true);
     setEnded(null);
     setError(null);
 
     try {
-      setLive(await bridge.start(handle));
+      setLive(await bridge.start(source));
     } catch (failure: unknown) {
       setError(failure);
     } finally {

@@ -1,16 +1,16 @@
 import { text } from "../i18n/text";
-import type { WindowView } from "../types";
+import type { SourceRef } from "../types";
 
 interface PickerFooterProps {
-  chosen: WindowView | null;
+  chosen: { source: SourceRef; name: string } | null;
   starting: boolean;
-  onStart: (handle: number) => void;
+  onStart: (source: SourceRef) => void;
 }
 
 export function PickerFooter({ chosen, starting, onStart }: PickerFooterProps) {
   function handleStart() {
     if (chosen) {
-      onStart(chosen.handle);
+      onStart(chosen.source);
     }
   }
 
@@ -21,7 +21,7 @@ export function PickerFooter({ chosen, starting, onStart }: PickerFooterProps) {
           {chosen ? text.selectedCaption : text.noSelectionCaption}
         </span>
         <span className="picker-choice-name line">
-          {chosen ? chosen.title : text.noSelectionName}
+          {chosen ? chosen.name : text.noSelectionName}
         </span>
       </span>
       <button
