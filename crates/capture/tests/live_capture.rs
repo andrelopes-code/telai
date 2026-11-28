@@ -5,14 +5,16 @@
 
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
-use std::sync::mpsc;
+use std::sync::{Arc, Mutex, mpsc};
 use std::time::{Duration, Instant};
 
 use telai_capture::{
-    AudioCapture, CaptureTarget, Frame, VideoCapture, VideoSink, WindowInfo, list_windows,
+    AudioCapture, CaptureTarget, Frame, MixedAudioCapture, VideoCapture, VideoSink, WindowInfo,
+    list_windows,
 };
 
 const TITLE: &str = "telai-capture-test";
+const MIX_TITLE: &str = "telai-mix-test";
 const TIMEOUT: Duration = Duration::from_secs(20);
 const SAMPLE_RATE: u32 = 48_000;
 
@@ -20,9 +22,9 @@ const SAMPLE_RATE: u32 = 48_000;
 #[ignore = "needs a desktop session and an audio output device"]
 fn captures_the_picture_and_sound_of_a_window() {
     let tone = write_tone(&std::env::temp_dir().join("telai-capture-test.wav"));
-    let child = TestWindow::spawn(&tone);
+    let child = TestWindow::spawn(&tone, TITLE);
 
-    let window = wait_for(|| find_window(|window| window.playing_audio))
+    let window = wait_for(|| find_window(TITLE, |window| window.playing_audio))
         .expect("the test window is listed as playing sound");
     assert_eq!(window.process_id, child.0.id());
 
@@ -51,6 +53,43 @@ fn lists_and_captures_a_monitor() {
 
     let (width, height, _) = capture_first_frame(CaptureTarget::Monitor(first.handle));
     assert_eq!((width, height), (first.width, first.height));
+}
+
+#[test]
+#[ignore = "needs a desktop session and an audio output device"]
+fn mixes_only_the_included_apps() {
+    let tone = write_tone(&std::env::temp_dir().join("telai-mix-test.wav"));
+    let child = TestWindow::spawn(&tone, MIX_TITLE);
+    let window = wait_for(|| find_window(MIX_TITLE, |window| window.playing_audio))
+        .expect("the test tone plays");
+
+    let included = mixed_peak(&[(window.process_id, 1.0)]);
+    assert!(included > 0.05, "included app peak {included}");
+
+    let excluded = mixed_peak(&[]);
+    assert!(excluded < 0.001, "excluded app peak {excluded}");
+
+    drop(child);
+}
+
+/// Highest level the mix publishes within three seconds of including `apps`.
+fn mixed_peak(apps: &[(u32, f32)]) -> f32 {
+    let peak = Arc::new(Mutex::new(0.0_f32));
+    let published = Arc::clone(&peak);
+    let mut mix = MixedAudioCapture::start(move |samples| {
+        let chunk = samples
+            .iter()
+            .fold(0.0_f32, |peak, sample| peak.max(sample.abs()));
+        let mut peak = published.lock().unwrap();
+        *peak = peak.max(chunk);
+    })
+    .expect("the mixer starts");
+
+    mix.sync(apps);
+    std::thread::sleep(Duration::from_secs(3));
+    mix.stop();
+
+    *peak.lock().unwrap()
 }
 
 /// Highest sample level within a few seconds of capture.
@@ -109,13 +148,13 @@ impl VideoSink for ChannelSink {
 struct TestWindow(Child);
 
 impl TestWindow {
-    fn spawn(tone: &Path) -> Self {
+    fn spawn(tone: &Path, title: &str) -> Self {
         let script = format!(
             "Add-Type -AssemblyName System.Windows.Forms; \
              $player = New-Object System.Media.SoundPlayer '{}'; \
              $player.PlayLooping(); \
              $form = New-Object System.Windows.Forms.Form; \
-             $form.Text = '{TITLE}'; \
+             $form.Text = '{title}'; \
              $form.BackColor = [System.Drawing.Color]::Red; \
              $form.Width = 640; \
              $form.Height = 360; \
@@ -139,11 +178,11 @@ impl Drop for TestWindow {
     }
 }
 
-fn find_window(condition: impl Fn(&WindowInfo) -> bool) -> Option<WindowInfo> {
+fn find_window(title: &str, condition: impl Fn(&WindowInfo) -> bool) -> Option<WindowInfo> {
     list_windows()
         .ok()?
         .into_iter()
-        .find(|window| window.title == TITLE && condition(window))
+        .find(|window| window.title == title && condition(window))
 }
 
 fn wait_for<T>(probe: impl Fn() -> Option<T>) -> Option<T> {

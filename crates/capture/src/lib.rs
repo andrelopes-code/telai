@@ -18,6 +18,7 @@ mod video;
 mod window;
 
 pub use audio::AudioCapture;
+pub use mixer::MixedAudioCapture;
 pub use monitor::{MonitorInfo, list_monitors};
 pub use net::tcp_client_process;
 pub use process::{ProcessTree, image_path};

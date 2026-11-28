@@ -1,6 +1,24 @@
 use std::collections::{BTreeMap, VecDeque};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::thread;
+use std::time::{Duration, Instant};
+
+use crate::{AudioCapture, Error};
 
 const CHANNELS: usize = 2;
+
+const SAMPLE_RATE: u64 = 48_000;
+
+/// 10 ms at 48 kHz, the size of each published chunk.
+const CHUNK_FRAMES: usize = 480;
+
+/// After a stall longer than this, the mixer skips ahead instead of
+/// publishing the whole backlog at once.
+const MAX_CATCH_UP_FRAMES: u64 = 4_800;
+
+/// How long the mixer thread sleeps between checks of the clock.
+const TICK: Duration = Duration::from_millis(5);
 
 /// 40 ms at 48 kHz: how much a source buffers before it is heard, so that
 /// capture packets arriving a little late do not leave gaps.
@@ -101,6 +119,136 @@ impl Mixer {
             .map(|(id, source)| (*id, std::mem::take(&mut source.peak)))
             .collect()
     }
+}
+
+/// The sound of several apps, each captured with its child processes and
+/// mixed into one interleaved stereo `f32` stream at 48 kHz.
+///
+/// The mix is published in real time even when no app plays, so a listener
+/// receives silence instead of a gap.
+pub struct MixedAudioCapture {
+    mixer: Arc<Mutex<Mixer>>,
+    captures: BTreeMap<u32, AudioCapture>,
+    stop: Arc<AtomicBool>,
+    thread: Option<thread::JoinHandle<()>>,
+}
+
+impl MixedAudioCapture {
+    /// Starts publishing the mix, silent until [`Self::sync`] adds apps.
+    pub fn start(on_samples: impl FnMut(&[f32]) + Send + 'static) -> Result<Self, Error> {
+        let mixer = Arc::new(Mutex::new(Mixer::default()));
+        let stop = Arc::new(AtomicBool::new(false));
+
+        let thread = thread::Builder::new().name("audio-mixer".into()).spawn({
+            let mixer = Arc::clone(&mixer);
+            let stop = Arc::clone(&stop);
+            move || publish_until_stopped(&mixer, &stop, on_samples)
+        })?;
+
+        Ok(Self {
+            mixer,
+            captures: BTreeMap::new(),
+            stop,
+            thread: Some(thread),
+        })
+    }
+
+    /// Makes the mix carry exactly `apps`, as (process id, gain) pairs:
+    /// starts capturing new ones, stops the ones left out and updates gains.
+    /// An app whose capture cannot start is tried again on the next call.
+    pub fn sync(&mut self, apps: &[(u32, f32)]) {
+        let left_out: Vec<u32> = self
+            .captures
+            .keys()
+            .copied()
+            .filter(|id| !apps.iter().any(|(app, _)| app == id))
+            .collect();
+        for id in left_out {
+            if let Some(capture) = self.captures.remove(&id) {
+                capture.stop();
+            }
+            lock(&self.mixer).remove(id);
+        }
+
+        for &(id, gain) in apps {
+            lock(&self.mixer).set_gain(id, gain);
+            if self.captures.contains_key(&id) {
+                continue;
+            }
+
+            let mixer = Arc::clone(&self.mixer);
+            match AudioCapture::start(id, move |samples| lock(&mixer).push(id, samples)) {
+                Ok(capture) => {
+                    self.captures.insert(id, capture);
+                }
+                Err(error) => {
+                    tracing::debug!(%error, process_id = id, "app audio capture did not start");
+                    lock(&self.mixer).remove(id);
+                }
+            }
+        }
+    }
+
+    /// Each app's peak level, after gain, since the previous call.
+    #[must_use]
+    pub fn take_levels(&self) -> Vec<(u32, f32)> {
+        lock(&self.mixer).take_peaks()
+    }
+
+    pub fn stop(mut self) {
+        self.stop_all();
+    }
+
+    fn stop_all(&mut self) {
+        self.stop.store(true, Ordering::Relaxed);
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
+
+        for (_, capture) in std::mem::take(&mut self.captures) {
+            capture.stop();
+        }
+    }
+}
+
+impl Drop for MixedAudioCapture {
+    fn drop(&mut self) {
+        self.stop_all();
+    }
+}
+
+fn publish_until_stopped(
+    mixer: &Mutex<Mixer>,
+    stop: &AtomicBool,
+    mut on_samples: impl FnMut(&[f32]),
+) {
+    let started = Instant::now();
+    let mut sent: u64 = 0;
+    let mut chunk = Vec::with_capacity(CHUNK_FRAMES * CHANNELS);
+
+    while !stop.load(Ordering::Relaxed) {
+        let due = frames_due(started.elapsed());
+        if due.saturating_sub(sent) > MAX_CATCH_UP_FRAMES {
+            sent = due - CHUNK_FRAMES as u64;
+        }
+
+        while sent + CHUNK_FRAMES as u64 <= due {
+            lock(mixer).mix(CHUNK_FRAMES, &mut chunk);
+            on_samples(&chunk);
+            sent += CHUNK_FRAMES as u64;
+        }
+
+        thread::sleep(TICK);
+    }
+}
+
+/// Frames that a 48 kHz stream has played after `elapsed`.
+fn frames_due(elapsed: Duration) -> u64 {
+    u64::try_from(elapsed.as_micros() * u128::from(SAMPLE_RATE) / 1_000_000).unwrap_or(u64::MAX)
+}
+
+fn lock(mixer: &Mutex<Mixer>) -> MutexGuard<'_, Mixer> {
+    mixer.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
 #[cfg(test)]
