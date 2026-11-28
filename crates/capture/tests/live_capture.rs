@@ -8,7 +8,9 @@ use std::process::{Child, Command};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
-use telai_capture::{AudioCapture, Frame, VideoCapture, VideoSink, WindowInfo, list_windows};
+use telai_capture::{
+    AudioCapture, CaptureTarget, Frame, VideoCapture, VideoSink, WindowInfo, list_windows,
+};
 
 const TITLE: &str = "telai-capture-test";
 const TIMEOUT: Duration = Duration::from_secs(20);
@@ -33,9 +35,22 @@ fn captures_the_picture_and_sound_of_a_window() {
     let peak = capture_audio_peak(window.process_id);
     assert!(peak > 0.05, "captured audio peak {peak}");
 
-    let (width, height, center) = capture_first_frame(window.handle);
+    let (width, height, center) = capture_first_frame(CaptureTarget::Window(window.handle));
     assert!(width >= 320 && height >= 160, "frame of {width}x{height}");
     assert_eq!(center, [0, 0, 255], "the center pixel is red, in BGR order");
+}
+
+#[test]
+#[ignore = "needs a desktop session"]
+fn lists_and_captures_a_monitor() {
+    let monitors = telai_capture::list_monitors().expect("monitors are listed");
+    let first = monitors.first().expect("at least one monitor");
+    assert_eq!(first.number, 1);
+    assert!(first.width > 0 && first.height > 0);
+    assert_eq!(monitors.iter().filter(|monitor| monitor.primary).count(), 1);
+
+    let (width, height, _) = capture_first_frame(CaptureTarget::Monitor(first.handle));
+    assert_eq!((width, height), (first.width, first.height));
 }
 
 /// Highest sample level within a few seconds of capture.
@@ -61,9 +76,9 @@ fn capture_audio_peak(process_id: u32) -> f32 {
     peak
 }
 
-fn capture_first_frame(handle: isize) -> (u32, u32, [u8; 3]) {
+fn capture_first_frame(target: CaptureTarget) -> (u32, u32, [u8; 3]) {
     let (sender, receiver) = mpsc::channel();
-    let video = VideoCapture::start(handle, ChannelSink(sender)).expect("window capture starts");
+    let video = VideoCapture::start(target, ChannelSink(sender)).expect("window capture starts");
 
     let frame = receiver.recv_timeout(TIMEOUT).expect("a frame arrives");
     video.stop();

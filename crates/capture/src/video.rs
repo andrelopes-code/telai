@@ -1,12 +1,14 @@
+use std::ffi::c_void;
 use std::time::{Duration, Instant};
 
 use windows::Win32::UI::WindowsAndMessaging::IsWindow;
 use windows_capture::capture::{CaptureControl, Context, GraphicsCaptureApiHandler};
 use windows_capture::frame::Frame as CapturedFrame;
 use windows_capture::graphics_capture_api::{GraphicsCaptureApi, InternalCaptureControl};
+use windows_capture::monitor::Monitor;
 use windows_capture::settings::{
     ColorFormat, CursorCaptureSettings, DirtyRegionSettings, DrawBorderSettings,
-    MinimumUpdateIntervalSettings, SecondaryWindowSettings, Settings,
+    GraphicsCaptureItemType, MinimumUpdateIntervalSettings, SecondaryWindowSettings, Settings,
 };
 use windows_capture::window::Window;
 
@@ -47,52 +49,46 @@ pub trait VideoSink: Send + 'static {
     fn closed(&mut self);
 }
 
-/// Captures one window until stopped or until the window closes.
+/// What a [`VideoCapture`] records.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CaptureTarget {
+    /// A top-level window, by its `HWND` as an integer.
+    Window(isize),
+    /// A whole display, by its `HMONITOR` as an integer.
+    Monitor(isize),
+}
+
+/// Captures one window or monitor until stopped or until it goes away.
 pub struct VideoCapture {
     control: Option<CaptureControl<Handler, windows_capture::frame::Error>>,
 }
 
 impl VideoCapture {
-    pub fn start(handle: isize, sink: impl VideoSink) -> Result<Self, Error> {
-        let hwnd = to_hwnd(handle);
-        if !unsafe { IsWindow(Some(hwnd)).as_bool() } {
-            return Err(Error::Video("the window no longer exists".into()));
-        }
-
+    pub fn start(target: CaptureTarget, sink: impl VideoSink) -> Result<Self, Error> {
         let sink: Box<dyn VideoSink> = Box::new(sink);
-        let settings = Settings::new(
-            Window::from_raw_hwnd(hwnd.0),
-            supported_or_default(
-                GraphicsCaptureApi::is_cursor_settings_supported(),
-                CursorCaptureSettings::WithoutCursor,
-                CursorCaptureSettings::Default,
-            ),
-            supported_or_default(
-                GraphicsCaptureApi::is_border_settings_supported(),
-                DrawBorderSettings::WithoutBorder,
-                DrawBorderSettings::Default,
-            ),
-            SecondaryWindowSettings::Default,
-            supported_or_default(
-                GraphicsCaptureApi::is_minimum_update_interval_supported(),
-                MinimumUpdateIntervalSettings::Custom(FRAME_INTERVAL),
-                MinimumUpdateIntervalSettings::Default,
-            ),
-            DirtyRegionSettings::Default,
-            ColorFormat::Bgra8,
-            sink,
-        );
+        let control = match target {
+            CaptureTarget::Window(handle) => {
+                let hwnd = to_hwnd(handle);
+                if !unsafe { IsWindow(Some(hwnd)).as_bool() } {
+                    return Err(Error::Video("the window no longer exists".into()));
+                }
 
-        let control = Handler::start_free_threaded(settings)
-            .map_err(|error| Error::Video(error.to_string()))?;
+                Handler::start_free_threaded(settings(Window::from_raw_hwnd(hwnd.0), sink))
+            }
+            CaptureTarget::Monitor(handle) => {
+                let monitor = Monitor::from_raw_hmonitor(handle as *mut c_void);
+                Handler::start_free_threaded(settings(monitor, sink))
+            }
+        }
+        .map_err(|error| Error::Video(error.to_string()))?;
 
         Ok(Self {
             control: Some(control),
         })
     }
 
-    /// Whether the capture ended on its own, because the window closed or
-    /// the capture failed.
+    /// Whether the capture ended on its own, because the window closed, the
+    /// monitor was disconnected or the capture failed.
     #[must_use]
     pub fn is_finished(&self) -> bool {
         self.control
@@ -126,6 +122,36 @@ impl Drop for VideoCapture {
     fn drop(&mut self) {
         self.stop_capture();
     }
+}
+
+/// The same capture settings for a window or a monitor: no cursor, no yellow
+/// border, at most 30 frames per second.
+fn settings<T: TryInto<GraphicsCaptureItemType>>(
+    item: T,
+    sink: Box<dyn VideoSink>,
+) -> Settings<Box<dyn VideoSink>, T> {
+    Settings::new(
+        item,
+        supported_or_default(
+            GraphicsCaptureApi::is_cursor_settings_supported(),
+            CursorCaptureSettings::WithoutCursor,
+            CursorCaptureSettings::Default,
+        ),
+        supported_or_default(
+            GraphicsCaptureApi::is_border_settings_supported(),
+            DrawBorderSettings::WithoutBorder,
+            DrawBorderSettings::Default,
+        ),
+        SecondaryWindowSettings::Default,
+        supported_or_default(
+            GraphicsCaptureApi::is_minimum_update_interval_supported(),
+            MinimumUpdateIntervalSettings::Custom(FRAME_INTERVAL),
+            MinimumUpdateIntervalSettings::Default,
+        ),
+        DirtyRegionSettings::Default,
+        ColorFormat::Bgra8,
+        sink,
+    )
 }
 
 /// Settings that the running Windows version lacks fall back to the default,

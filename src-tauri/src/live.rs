@@ -196,7 +196,8 @@ fn open_session(app: &AppHandle, window: WindowInfo) -> Result<LiveSession, Comm
         pool: EncoderPool::new(state.hub.clone()),
         shared: Arc::clone(&shared),
     };
-    let video = VideoCapture::start(window.handle, sink).map_err(CommandError::video)?;
+    let video = VideoCapture::start(telai_capture::CaptureTarget::Window(window.handle), sink)
+        .map_err(CommandError::video)?;
 
     state.hub.set_status(Status {
         live: true,

@@ -1,8 +1,9 @@
 use jpeg_encoder::{ColorType, Encoder};
 use windows::Win32::Foundation::{HWND, RECT};
 use windows::Win32::Graphics::Gdi::{
-    BI_RGB, BITMAPINFO, BITMAPINFOHEADER, CreateCompatibleDC, CreateDIBSection, DIB_RGB_COLORS,
-    DeleteDC, DeleteObject, GetDC, HBITMAP, HDC, HGDIOBJ, ReleaseDC, SelectObject,
+    BI_RGB, BITMAPINFO, BITMAPINFOHEADER, BitBlt, CAPTUREBLT, CreateCompatibleDC, CreateDIBSection,
+    DIB_RGB_COLORS, DeleteDC, DeleteObject, GetDC, GetMonitorInfoW, HBITMAP, HDC, HGDIOBJ,
+    HMONITOR, MONITORINFO, ReleaseDC, SRCCOPY, SelectObject,
 };
 use windows::Win32::Storage::Xps::{PRINT_WINDOW_FLAGS, PrintWindow};
 use windows::Win32::UI::WindowsAndMessaging::{GetWindowRect, IsIconic};
@@ -37,7 +38,9 @@ pub fn window_thumbnail(hwnd: HWND) -> Option<Vec<u8>> {
         .ok()
         .filter(|h| *h > 0)?;
 
-    let bgra = print_window(hwnd, width, height)?;
+    let bgra = render(width, height, |memory, _| unsafe {
+        PrintWindow(hwnd, memory, PW_RENDERFULLCONTENT).as_bool()
+    })?;
     if bgra
         .as_chunks::<4>()
         .0
@@ -52,7 +55,47 @@ pub fn window_thumbnail(hwnd: HWND) -> Option<Vec<u8>> {
     encode_jpeg(&small, small_width, small_height)
 }
 
-fn print_window(hwnd: HWND, width: u32, height: u32) -> Option<Vec<u8>> {
+/// A still image of a whole monitor as a JPEG, copied from the screen.
+pub(crate) fn monitor_thumbnail(hmonitor: HMONITOR) -> Option<Vec<u8>> {
+    let mut info = MONITORINFO {
+        cbSize: u32::try_from(size_of::<MONITORINFO>()).ok()?,
+        ..Default::default()
+    };
+    if !unsafe { GetMonitorInfoW(hmonitor, &raw mut info) }.as_bool() {
+        return None;
+    }
+
+    let rect = info.rcMonitor;
+    let width = u32::try_from(rect.right - rect.left)
+        .ok()
+        .filter(|w| *w > 0)?;
+    let height = u32::try_from(rect.bottom - rect.top)
+        .ok()
+        .filter(|h| *h > 0)?;
+
+    let bgra = render(width, height, |memory, screen| unsafe {
+        BitBlt(
+            memory,
+            0,
+            0,
+            rect.right - rect.left,
+            rect.bottom - rect.top,
+            Some(screen),
+            rect.left,
+            rect.top,
+            SRCCOPY | CAPTUREBLT,
+        )
+        .is_ok()
+    })?;
+
+    let (small, small_width, small_height) = downscale(&bgra, width, height, MAX_WIDTH, MAX_HEIGHT);
+
+    encode_jpeg(&small, small_width, small_height)
+}
+
+/// Lets `paint` draw into a `width` x `height` BGRA bitmap, given the
+/// bitmap DC and the screen DC, and returns the pixels when it succeeds.
+fn render(width: u32, height: u32, paint: impl FnOnce(HDC, HDC) -> bool) -> Option<Vec<u8>> {
     let screen = ScreenDc(unsafe { GetDC(None) });
     let memory = MemoryDc(unsafe { CreateCompatibleDC(Some(screen.0)) });
 
@@ -83,8 +126,8 @@ fn print_window(hwnd: HWND, width: u32, height: u32) -> Option<Vec<u8>> {
     let bitmap = Bitmap(bitmap);
 
     let previous = unsafe { SelectObject(memory.0, bitmap.0.into()) };
-    let printed = unsafe { PrintWindow(hwnd, memory.0, PW_RENDERFULLCONTENT) }.as_bool();
-    let pixels = printed.then(|| {
+    let painted = paint(memory.0, screen.0);
+    let pixels = painted.then(|| {
         let len = width as usize * height as usize * 4;
 
         unsafe { std::slice::from_raw_parts(bits.cast::<u8>(), len) }.to_vec()
