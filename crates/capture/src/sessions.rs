@@ -67,14 +67,14 @@ pub fn audio_apps() -> Result<Vec<AudioApp>, crate::Error> {
             .clone()
     };
 
-    let mut apps: Vec<AudioApp> = Vec::new();
+    let mut found: Vec<AudioApp> = Vec::new();
     for process_id in session_processes {
         if process_id == 0 || process_id == own_process {
             continue;
         }
 
         let root = app_root(process_id, &tree, &mut executable_of);
-        if apps.iter().any(|app| app.process_id == root) {
+        if found.iter().any(|app| app.process_id == root) {
             continue;
         }
 
@@ -85,13 +85,14 @@ pub fn audio_apps() -> Result<Vec<AudioApp>, crate::Error> {
             .file_stem()
             .map(|stem| stem.to_string_lossy().into_owned())
             .unwrap_or_default();
-        apps.push(AudioApp {
+        found.push(AudioApp {
             process_id: root,
             executable,
             name,
         });
     }
 
+    let mut apps = without_containers(found, &tree);
     apps.sort_by(|a, b| {
         a.name
             .to_lowercase()
@@ -100,6 +101,22 @@ pub fn audio_apps() -> Result<Vec<AudioApp>, crate::Error> {
     });
 
     Ok(apps)
+}
+
+/// Drops the apps whose process tree holds another listed app, such as a
+/// launcher or the shell. Process loopback records a whole tree, so
+/// capturing one of them would also record the app below it: twice when that
+/// app is included, and against the user's choice when it is left out.
+fn without_containers(apps: Vec<AudioApp>, tree: &ProcessTree) -> Vec<AudioApp> {
+    let roots: Vec<u32> = apps.iter().map(|app| app.process_id).collect();
+
+    apps.into_iter()
+        .filter(|app| {
+            !roots
+                .iter()
+                .any(|&other| other != app.process_id && tree.is_within(other, app.process_id))
+        })
+        .collect()
 }
 
 fn active_session_processes() -> Result<Vec<u32>, crate::Error> {
@@ -192,6 +209,28 @@ mod tests {
         };
 
         assert_eq!(app_root(30, &tree, exe), 30);
+    }
+
+    #[test]
+    fn an_app_whose_tree_holds_another_listed_app_is_left_out() {
+        // explorer (10) launched Discord (20); vlc (30) runs elsewhere.
+        let tree = ProcessTree::from_links(&[(20, 10), (10, 1), (30, 2)]);
+        let apps = vec![app(10, "explorer"), app(20, "Discord"), app(30, "vlc")];
+
+        let kept: Vec<u32> = without_containers(apps, &tree)
+            .iter()
+            .map(|app| app.process_id)
+            .collect();
+
+        assert_eq!(kept, vec![20, 30]);
+    }
+
+    fn app(process_id: u32, name: &str) -> AudioApp {
+        AudioApp {
+            process_id,
+            executable: PathBuf::from(format!("{name}.exe")),
+            name: name.to_owned(),
+        }
     }
 
     #[test]
