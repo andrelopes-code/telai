@@ -64,6 +64,24 @@ impl ProcessTree {
 
         false
     }
+
+    /// The parent of `process_id`, unless it is unknown, the system idle
+    /// process or the process itself.
+    #[must_use]
+    pub fn parent(&self, process_id: u32) -> Option<u32> {
+        self.parents
+            .get(&process_id)
+            .copied()
+            .filter(|&parent| parent != 0 && parent != process_id)
+    }
+
+    /// A tree from (child, parent) links, for tests.
+    #[cfg(test)]
+    pub(crate) fn from_links(links: &[(u32, u32)]) -> Self {
+        Self {
+            parents: links.iter().copied().collect(),
+        }
+    }
 }
 
 /// Full path of the executable of a running process.
@@ -129,8 +147,6 @@ mod tests {
     }
 
     fn tree(links: &[(u32, u32)]) -> ProcessTree {
-        ProcessTree {
-            parents: links.iter().copied().collect(),
-        }
+        ProcessTree::from_links(links)
     }
 }

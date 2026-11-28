@@ -20,7 +20,7 @@ pub use audio::AudioCapture;
 pub use monitor::{MonitorInfo, list_monitors};
 pub use net::tcp_client_process;
 pub use process::{ProcessTree, image_path};
-pub use sessions::audible_processes;
+pub use sessions::{AudioApp, audible_processes, audio_apps};
 pub use system::supports_acrylic;
 pub use video::{CaptureTarget, Frame, VideoCapture, VideoSink};
 pub use window::{WindowInfo, is_minimized, list_windows};
