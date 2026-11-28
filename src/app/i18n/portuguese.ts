@@ -39,6 +39,10 @@ export const portuguese: Strings = {
 
   live: "Ao vivo",
   soundLevel: "Nível do som",
+  audioMixTitle: "Som transmitido",
+  audioMixEmpty: "Nenhum app tocando som",
+  includeApp: (name: string) => `Transmitir o som de ${name}`,
+  volumeOf: (name: string) => `Volume de ${name}`,
   previewOf: (title: string) => `Prévia de ${title}`,
   minimizedTitle: "Janela minimizada",
   minimizedHint: "A chamada vê a última imagem até você restaurar a janela.",

@@ -2,7 +2,7 @@
 
 [Português](README.pt-BR.md)
 
-Telai streams one desktop window, with only that program's sound, to a tab in the browser. The tab can then be shared in any browser call that shares tabs.
+Telai streams one desktop window, with only that program's sound, or a whole screen, with only the sound of the apps you choose, to a tab in the browser. The tab can then be shared in any browser call that shares tabs.
 
 <p>
   <img src="docs/images/picker.webp" width="330" alt="Window picker, with the windows that play sound listed first">
@@ -51,6 +51,12 @@ Telai checks which browser process holds the player connection and whether that 
 
 Closing the window while streaming keeps Telai in the notification area. Closing the captured window ends the stream.
 
+## Whole screen
+
+The **Screens** group streams a whole display. Its sound is a mix of every app that has an audio session open, each captured with WASAPI process loopback and summed at 48 kHz. The live screen lists those apps with their level: unchecking one leaves it out of the stream, and its slider sets how loud it is in the stream, without changing what you hear on the PC. Discord starts unchecked, so the people in the call do not hear themselves back. The choices are saved in `audio-mix.json` in the app config folder.
+
+The choice is per app, not per browser tab: every tab of a browser is one app. An app that starts playing during the stream joins the mix within about a second.
+
 ## Requirements
 
 - Windows 10 version 2004 or later, or Windows 11.
@@ -84,7 +90,7 @@ The `telai-stream` crate and the frontend build and test on any platform. The ca
 
 | Path             | Contents                                                               |
 | ---------------- | ---------------------------------------------------------------------- |
-| `crates/capture` | Window list, window capture, process audio capture, audio sessions     |
+| `crates/capture` | Window and screen lists and capture, per-app audio capture and mixing  |
 | `crates/stream`  | JPEG encoding, wire protocol, HTTP and WebSocket server for the player |
 | `src-tauri`      | Tauri app: live session, commands, tray icon                           |
 | `src/app`        | App window (React)                                                     |

@@ -33,7 +33,7 @@
     "active": true,
     "targets": ["nsis"],
     "category": "Video",
-    "shortDescription": "Streams one window, with only its own audio, to a local browser tab",
+    "shortDescription": "Streams a window or a whole screen, with only the sound you choose, to a local browser tab",
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
     "windows": {
       "nsis": {

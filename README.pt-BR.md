@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-O Telai transmite uma janela do computador, com o som apenas daquele programa, para uma aba do navegador. Essa aba pode ser compartilhada em qualquer chamada no navegador que compartilhe abas.
+O Telai transmite uma janela do computador, com o som apenas daquele programa, ou uma tela inteira, com o som apenas dos apps que você escolher, para uma aba do navegador. Essa aba pode ser compartilhada em qualquer chamada no navegador que compartilhe abas.
 
 <p>
   <img src="docs/images/picker.pt-BR.webp" width="330" alt="Seleção de janela, com as janelas que tocam som no topo">
@@ -51,6 +51,12 @@ O Telai identifica o processo do navegador dono da conexão do player e verifica
 
 Fechar a janela do Telai durante a transmissão mantém o app na área de notificação. Fechar a janela capturada encerra a transmissão.
 
+## Tela inteira
+
+O grupo **Telas** transmite um monitor inteiro. O som é uma mistura de todos os apps com uma sessão de áudio aberta, cada um capturado pelo WASAPI process loopback e somado a 48 kHz. A tela ao vivo lista esses apps com o nível de cada um: desmarcar um app tira o som dele da transmissão, e o controle deslizante define o volume dele na transmissão, sem mudar o que você ouve no PC. O Discord começa desmarcado, para que as pessoas da chamada não ouçam a própria voz de volta. As escolhas ficam salvas em `audio-mix.json`, na pasta de configuração do app.
+
+A escolha é por app, não por aba: todas as abas de um navegador são um app só. Um app que começa a tocar durante a transmissão entra na mistura em cerca de um segundo.
+
 ## Requisitos
 
 - Windows 10 versão 2004 ou mais novo, ou Windows 11.
@@ -84,7 +90,7 @@ No Windows, `cargo test --workspace -- --include-ignored` também roda um teste 
 
 | Caminho          | Conteúdo                                                                   |
 | ---------------- | -------------------------------------------------------------------------- |
-| `crates/capture` | Lista de janelas, captura de janela, captura de áudio do processo          |
+| `crates/capture` | Listas e captura de janelas e telas, captura e mistura do áudio por app    |
 | `crates/stream`  | Codificação JPEG, protocolo, servidor HTTP e WebSocket do player           |
 | `src-tauri`      | App Tauri: sessão ao vivo, comandos, ícone na bandeja                      |
 | `src/app`        | Janela do app (React)                                                      |

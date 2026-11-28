@@ -1,4 +1,5 @@
 import type { LiveSnapshot } from "../types";
+import { AudioMix } from "./AudioMix";
 import { LiveFooter } from "./LiveFooter";
 import { LiveStatus } from "./LiveStatus";
 import { LiveSteps } from "./LiveSteps";
@@ -28,6 +29,7 @@ export function LiveScreen({ live, url, onStop }: LiveScreenProps) {
       <LiveStatus status={status} />
       <LiveSteps steps={steps} viewers={live.viewers} />
       <Monitor live={live} url={url} />
+      {live.audioApps !== null && <AudioMix apps={live.audioApps} />}
       <SourceRow source={live.source} onStop={onStop} />
       <LiveFooter url={url} viewers={live.viewers} />
     </main>

@@ -37,6 +37,10 @@ export const english = {
 
   live: "Live",
   soundLevel: "Sound level",
+  audioMixTitle: "Streamed sound",
+  audioMixEmpty: "No app is playing sound",
+  includeApp: (name: string) => `Stream the sound of ${name}`,
+  volumeOf: (name: string) => `Volume of ${name}`,
   previewOf: (title: string) => `Preview of ${title}`,
   minimizedTitle: "Window minimized",
   minimizedHint: "The call sees the last frame until you restore the window.",

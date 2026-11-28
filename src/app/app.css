@@ -876,6 +876,110 @@
   text-box: trim-both cap alphabetic;
 }
 
+/* A screen stream also lists the apps with sound: the preview gives up
+   height so the list fits the window. */
+.live:has(.mix) .monitor {
+  flex: none;
+  align-self: center;
+  block-size: 180px; /* literal: compact preview beside the app list */
+  inline-size: auto;
+}
+
+.mix {
+  flex: 1 1 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--s-2);
+  min-block-size: 0;
+  margin-block-start: var(--s-4);
+}
+
+.mix-title {
+  margin: 0;
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.mix-empty {
+  margin: 0;
+  font-size: var(--t-s);
+  color: var(--text-2);
+}
+
+.mix-list {
+  display: grid;
+  gap: var(--s-1);
+  align-content: start;
+  min-block-size: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.mix-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 48px 96px 36px; /* literal: mix row columns */
+  align-items: center;
+  gap: var(--s-2);
+  block-size: var(--control);
+  padding-inline: var(--s-2);
+  border-radius: var(--r-m);
+  color: var(--text-3);
+}
+
+.mix-row[data-included] {
+  color: var(--text);
+}
+
+.mix-row:hover {
+  background: var(--fill);
+}
+
+.mix-check,
+.mix-volume {
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.mix-name {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-inline-size: 0;
+  font-weight: 600;
+}
+
+.mix-level {
+  display: block;
+  block-size: 4px; /* literal: level bar */
+  border-radius: var(--r-full);
+  overflow: hidden;
+  background: var(--fill-strong);
+}
+
+.mix-level i {
+  display: block;
+  block-size: 100%;
+  background: var(--done);
+  transition: inline-size 120ms linear; /* literal: matches the level line */
+}
+
+.mix-level[data-zone="high"] i {
+  background: var(--attention);
+}
+
+.mix-level[data-zone="peak"] i {
+  background: var(--live);
+}
+
+.mix-percent {
+  font-size: var(--t-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
 .source {
   display: flex;
   align-items: center;
