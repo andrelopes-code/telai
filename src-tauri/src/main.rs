@@ -3,6 +3,7 @@
 
 mod app;
 mod assets;
+mod audio_prefs;
 mod browser_audio;
 mod commands;
 mod live;
